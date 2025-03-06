@@ -1,4 +1,8 @@
 import { defineConfig } from 'orval';
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env.local
+dotenv.config({ path: '.env.local' });
 
 export default defineConfig({
   myrecipebook: {
@@ -10,9 +14,9 @@ export default defineConfig({
       mock: false,
       override: {
         mutator: {
-          path: 'src/api/axios-instance.ts',
+          path: './src/api/axios-instance.ts',
           name: 'customInstance',
-        },
+        }
       },
     },
   },

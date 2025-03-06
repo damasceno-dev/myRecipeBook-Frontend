@@ -5,17 +5,24 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Image from 'next/image';
+import { usePostUserRegister, usePostUserLogin } from '@/api/generated/myRecipeBookAPI';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
 
+  const registerMutation = usePostUserRegister();
+  const loginMutation = usePostUserLogin();
+
   const clearForm = () => {
+    setName('');
     setEmail('');
     setPassword('');
     setConfirmPassword('');
@@ -23,8 +30,11 @@ export default function LoginPage() {
   };
 
   const toggleAuthMode = () => {
+    setIsAnimating(true);
     setIsLogin(!isLogin);
-    clearForm();
+    setTimeout(() => {
+      setIsAnimating(false);
+    }, 500);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,16 +44,33 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
+        console.log('Attempting login with:', { email, password });
+        const result = await loginMutation.mutateAsync({
+          data: {
+            email: email.trim().toLowerCase(),
+            password: password.trim(),
+          },
         });
+        console.log('Login response:', result);
 
-        if (result?.error) {
-          setError('Invalid email or password');
+        // Check both possible response structures
+        if (result?.responseToken || (result as any)?.data?.responseToken) {
+          // Sign in with NextAuth to manage the session
+          const signInResult = await signIn('credentials', {
+            username: email.trim().toLowerCase(),
+            password: password.trim(),
+            redirect: false,
+          });
+
+          if (signInResult?.error) {
+            setError('Failed to establish session. Please try again.');
+            return;
+          }
+
+          // Use replace instead of push to prevent back navigation to login
+          router.replace('/dashboard');
         } else {
-          router.push('/dashboard');
+          setError('Invalid email or password. Please check your credentials and try again.');
         }
       } else {
         // Validate passwords match
@@ -53,43 +80,61 @@ export default function LoginPage() {
           return;
         }
 
-        // Validate password strength
-        if (password.length < 8) {
-          setError('Password must be at least 8 characters long');
-          setIsLoading(false);
-          return;
-        }
-
         // Handle registration
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+        console.log('Attempting registration with:', { name, email, password });
+        const result = await registerMutation.mutateAsync({
+          data: {
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password: password.trim(),
+          },
         });
-
-        if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.message || 'Registration failed');
-        }
+        console.log('Registration response:', result);
 
         // After successful registration, automatically log in
-        const result = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
+        console.log('Attempting auto-login after registration');
+        const loginResult = await loginMutation.mutateAsync({
+          data: {
+            email: email.trim().toLowerCase(),
+            password: password.trim(),
+          },
         });
+        console.log('Auto-login response:', loginResult);
 
-        if (result?.error) {
-          setError('Registration successful but login failed. Please try logging in.');
+        // Check both possible response structures
+        if (loginResult?.responseToken || (loginResult as any)?.data?.responseToken) {
+          // Sign in with NextAuth to manage the session
+          const signInResult = await signIn('credentials', {
+            username: email.trim().toLowerCase(),
+            password: password.trim(),
+            redirect: false,
+          });
+
+          if (signInResult?.error) {
+            setError('Registration successful but failed to establish session. Please try logging in manually.');
+            return;
+          }
+
+          // Use replace instead of push to prevent back navigation to login
+          router.replace('/dashboard');
         } else {
-          router.push('/dashboard');
+          setError('Registration successful but login failed. Please try logging in manually.');
         }
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred. Please try again.');
+      console.error('Error details:', error);
+      if (error instanceof Error) {
+        const apiError = error as any;
+        if (apiError.response?.data?.errorMessages) {
+          setError(apiError.response.data.errorMessages.join(', '));
+        } else if (apiError.response?.data?.message) {
+          setError(apiError.response.data.message);
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError('An error occurred. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +157,7 @@ export default function LoginPage() {
             <button
               onClick={toggleAuthMode}
               className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+              disabled={isAnimating}
             >
               {isLogin ? 'Sign up' : 'Sign in'}
             </button>
@@ -124,7 +170,28 @@ export default function LoginPage() {
             </div>
           )}
           <div className="rounded-md shadow-sm space-y-4">
-            <div>
+            <div
+              className={`transform transition-all duration-500 ease-in-out ${
+                !isLogin
+                  ? 'opacity-100 max-h-20 translate-y-0'
+                  : 'opacity-0 max-h-0 -translate-y-4 pointer-events-none'
+              }`}
+            >
+              <label htmlFor="name" className="sr-only">
+                Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                required={!isLogin}
+                className="input-field"
+                placeholder="Full Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+            <div className="transform transition-all duration-500 ease-in-out">
               <label htmlFor="email" className="sr-only">
                 Email
               </label>
@@ -139,7 +206,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <div>
+            <div className="transform transition-all duration-500 ease-in-out">
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
@@ -154,30 +221,34 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {!isLogin && (
-              <div>
-                <label htmlFor="confirmPassword" className="sr-only">
-                  Confirm Password
-                </label>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type="password"
-                  required
-                  className="input-field"
-                  placeholder="Confirm Password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-              </div>
-            )}
+            <div
+              className={`transform transition-all duration-500 ease-in-out ${
+                !isLogin
+                  ? 'opacity-100 max-h-20 translate-y-0'
+                  : 'opacity-0 max-h-0 -translate-y-4 pointer-events-none'
+              }`}
+            >
+              <label htmlFor="confirmPassword" className="sr-only">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                required={!isLogin}
+                className="input-field"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
             <button
               type="submit"
               className="btn-primary"
-              disabled={isLoading}
+              disabled={isLoading || isAnimating}
             >
               {isLoading ? (isLogin ? 'Signing in...' : 'Creating account...') : (isLogin ? 'Sign in' : 'Create account')}
             </button>
@@ -199,6 +270,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleSignIn}
               className="btn-google"
+              disabled={isAnimating}
             >
               <span className="flex items-center justify-center">
                 <Image

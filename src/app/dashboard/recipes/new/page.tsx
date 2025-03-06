@@ -5,14 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardNav from '@/components/DashboardNav';
-import { trpc } from '@/utils/trpc';
+import { usePostRecipeRegister } from '@/api/generated/myRecipeBookAPI';
+import { CookingTime, Difficulty, DishType, ResponseRecipeJson, ResponseErrorJson } from '@/api/generated/myRecipeBookAPI.schemas';
 
 interface RecipeFormData {
   title: string;
-  description: string;
   ingredients: string[];
   instructions: string[];
   image?: File;
+  cookingTime?: CookingTime;
+  difficulty?: Difficulty;
+  dishTypes?: DishType[];
 }
 
 export default function NewRecipePage() {
@@ -22,17 +25,20 @@ export default function NewRecipePage() {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
-    description: '',
     ingredients: [''],
     instructions: [''],
   });
 
-  const createRecipe = trpc.recipe.create.useMutation({
-    onSuccess: (data) => {
-      router.push(`/dashboard/recipes/${data.id}`);
-    },
-    onError: (error) => {
-      setError(error.message);
+  const createRecipe = usePostRecipeRegister({
+    mutation: {
+      onSuccess: (data: ResponseRecipeJson) => {
+        if (data?.id) {
+          router.push(`/dashboard/recipes/${data.id}`);
+        }
+      },
+      onError: (error: ResponseErrorJson) => {
+        setError(error.errorMessages?.[0] || 'Failed to create recipe');
+      },
     },
   });
 
@@ -69,19 +75,58 @@ export default function NewRecipePage() {
 
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.title);
-      formDataToSend.append('description', formData.description);
-      formDataToSend.append('ingredients', JSON.stringify(formData.ingredients.filter(i => i.trim())));
-      formDataToSend.append('instructions', JSON.stringify(formData.instructions.filter(i => i.trim())));
+      formDataToSend.append('Title', formData.title);
+      
+      // Add ingredients
+      formData.ingredients
+        .filter(i => i.trim())
+        .forEach(ingredient => {
+          formDataToSend.append('Ingredients', ingredient);
+        });
+
+      // Add instructions
+      formData.instructions
+        .filter(i => i.trim())
+        .forEach((instruction, index) => {
+          formDataToSend.append('Instructions', JSON.stringify({
+            Step: index + 1,
+            Text: instruction
+          }));
+        });
+
+      // Add image if present
       if (formData.image) {
-        formDataToSend.append('image', formData.image);
+        formDataToSend.append('ImageFile', formData.image);
+      }
+
+      // Add optional fields if present
+      if (formData.cookingTime) {
+        formDataToSend.append('CookingTime', formData.cookingTime.toString());
+      }
+      if (formData.difficulty) {
+        formDataToSend.append('Difficulty', formData.difficulty.toString());
+      }
+      if (formData.dishTypes?.length) {
+        formData.dishTypes.forEach(type => {
+          formDataToSend.append('DishTypes', type.toString());
+        });
       }
 
       await createRecipe.mutateAsync({
-        title: formData.title,
-        description: formData.description,
-        ingredients: formData.ingredients.filter(i => i.trim()),
-        instructions: formData.instructions.filter(i => i.trim()),
+        data: {
+          ImageFile: formData.image,
+          Title: formData.title,
+          Ingredients: formData.ingredients.filter(i => i.trim()),
+          Instructions: formData.instructions
+            .filter(i => i.trim())
+            .map((text, index) => ({
+              Step: index + 1,
+              Text: text
+            })),
+          CookingTime: formData.cookingTime,
+          Difficulty: formData.difficulty,
+          DishTypes: formData.dishTypes
+        }
       });
     } catch (err) {
       setError('Failed to create recipe. Please try again.');
@@ -117,20 +162,6 @@ export default function NewRecipePage() {
                 className="input-field mt-1"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description
-              </label>
-              <textarea
-                id="description"
-                required
-                rows={3}
-                className="input-field mt-1"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               />
             </div>
 

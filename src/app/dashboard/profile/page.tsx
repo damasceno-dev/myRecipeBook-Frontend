@@ -6,7 +6,8 @@ import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardNav from '@/components/DashboardNav';
-import { trpc } from '@/utils/trpc';
+import { usePutUserUpdate } from '@/api/generated/myRecipeBookAPI';
+import { RequestUserUpdateJson, ResponseErrorJson } from '@/api/generated/myRecipeBookAPI.schemas';
 
 interface UserProfile {
   name: string;
@@ -28,21 +29,22 @@ export default function ProfilePage() {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
 
-  const updateProfile = trpc.user.updateProfile.useMutation({
-    onSuccess: async (data) => {
-      await update({
-        ...session,
-        user: {
-          ...session?.user,
-          name: data.name,
-          email: data.email,
-          image: data.imageUrl,
-        },
-      });
-      setSuccess('Profile updated successfully');
-    },
-    onError: (error) => {
-      setError(error.message);
+  const updateProfile = usePutUserUpdate({
+    mutation: {
+      onSuccess: async (data) => {
+        await update({
+          ...session,
+          user: {
+            ...session?.user,
+            name: data.name || '',
+            email: data.email || '',
+          },
+        });
+        setSuccess('Profile updated successfully');
+      },
+      onError: (error: ResponseErrorJson) => {
+        setError(error.errorMessages?.[0] || 'Failed to update profile');
+      },
     },
   });
 
@@ -76,18 +78,12 @@ export default function ProfilePage() {
     setSuccess('');
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('name', formData.name);
-      formDataToSend.append('email', formData.email);
-      if (imageFile) {
-        formDataToSend.append('image', imageFile);
-      }
-
-      await updateProfile.mutateAsync({
+      const updateData: RequestUserUpdateJson = {
         name: formData.name,
         email: formData.email,
-        image: imageFile,
-      });
+      };
+
+      await updateProfile.mutateAsync({ data: updateData });
     } catch (err) {
       setError('Failed to update profile. Please try again.');
     } finally {

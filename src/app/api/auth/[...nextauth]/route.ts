@@ -12,32 +12,36 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        username: { label: "Username", type: "text" },
+        username: { label: "Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        // Add your authentication logic here
-        // This is where you would validate against your backend
         if (!credentials?.username || !credentials?.password) return null;
         
         try {
-          // Replace this with your actual API call
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              username: credentials.username,
+              email: credentials.username,
               password: credentials.password,
             }),
           });
 
-          const user = await response.json();
+          const data = await response.json();
 
-          if (response.ok && user) {
-            return user;
+          if (response.ok && data?.responseToken) {
+            return {
+              id: data.id,
+              name: data.name,
+              email: data.email,
+              token: data.responseToken.token,
+              refreshToken: data.responseToken.refreshToken,
+            };
           }
           return null;
         } catch (error) {
+          console.error('Auth error:', error);
           return null;
         }
       }
@@ -49,12 +53,23 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      return { ...token, ...user };
+      if (user) {
+        token.accessToken = user.token;
+        token.refreshToken = user.refreshToken;
+      }
+      return token;
     },
     async session({ session, token }) {
-      session.user = token as any;
+      session.user = {
+        ...session.user,
+        token: token.accessToken,
+        refreshToken: token.refreshToken,
+      };
       return session;
     },
+  },
+  session: {
+    strategy: 'jwt',
   },
 }
 

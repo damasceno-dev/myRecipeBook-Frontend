@@ -1,35 +1,35 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardNav from '@/components/DashboardNav';
-import { trpc } from '@/utils/trpc';
-import type { RouterOutputs } from '@/utils/trpc';
-
-type Recipe = RouterOutputs['recipe']['getById'];
+import { useGetRecipeGetbyidRecipeId, useDeleteRecipeDeletebyidRecipeId } from '@/api/generated/myRecipeBookAPI';
+import { ResponseRecipeJson, ResponseErrorJson } from '@/api/generated/myRecipeBookAPI.schemas';
 
 export default function RecipeDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [error, setError] = useState('');
 
-  const { data: recipe, isLoading } = trpc.recipe.getById.useQuery(params.id);
+  const { data: recipe, isLoading } = useGetRecipeGetbyidRecipeId(params.id);
 
-  const deleteRecipe = trpc.recipe.delete.useMutation({
-    onSuccess: () => {
-      router.push('/dashboard');
-    },
-    onError: (error) => {
-      setError(error.message);
+  const deleteRecipe = useDeleteRecipeDeletebyidRecipeId({
+    mutation: {
+      onSuccess: () => {
+        router.push('/dashboard');
+      },
+      onError: (error: ResponseErrorJson) => {
+        setError(error.errorMessages?.[0] || 'Failed to delete recipe');
+      },
     },
   });
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this recipe?')) return;
-    await deleteRecipe.mutateAsync(params.id);
+    await deleteRecipe.mutateAsync({ recipeId: params.id });
   };
 
   return (
@@ -51,7 +51,7 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                 <div className="relative h-96">
                   <Image
                     src={recipe.imageUrl}
-                    alt={recipe.title}
+                    alt={recipe.title || 'Recipe'}
                     fill
                     className="object-cover"
                   />
@@ -60,7 +60,7 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
               <div className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                    {recipe.title}
+                    {recipe.title || 'Untitled Recipe'}
                   </h1>
                   <div className="flex space-x-4">
                     <button
@@ -78,16 +78,36 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                   </div>
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 mb-8">
-                  {recipe.description}
-                </p>
+                {recipe.cookingTime && (
+                  <div className="mb-4">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Cooking Time: {recipe.cookingTime}
+                    </span>
+                  </div>
+                )}
+
+                {recipe.difficulty && (
+                  <div className="mb-4">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Difficulty: {recipe.difficulty}
+                    </span>
+                  </div>
+                )}
+
+                {recipe.dishTypes && recipe.dishTypes.length > 0 && (
+                  <div className="mb-4">
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Dish Types: {recipe.dishTypes.join(', ')}
+                    </span>
+                  </div>
+                )}
 
                 <div className="mb-8">
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                     Ingredients
                   </h2>
                   <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
-                    {recipe.ingredients.map((ingredient, index) => (
+                    {recipe.ingredients?.map((ingredient, index) => (
                       <li key={index}>{ingredient}</li>
                     ))}
                   </ul>
@@ -98,8 +118,8 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                     Instructions
                   </h2>
                   <ol className="list-decimal list-inside space-y-4 text-gray-600 dark:text-gray-300">
-                    {recipe.instructions.map((instruction, index) => (
-                      <li key={index} className="ml-2">{instruction}</li>
+                    {recipe.instructions?.map((instruction, index) => (
+                      <li key={index} className="ml-2">{instruction.text}</li>
                     ))}
                   </ol>
                 </div>

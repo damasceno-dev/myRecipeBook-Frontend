@@ -5,17 +5,17 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import DashboardNav from '@/components/DashboardNav';
-import { trpc } from '@/utils/trpc';
-import type { RouterOutputs } from '@/utils/trpc';
-
-type Recipe = RouterOutputs['recipe']['getById'];
+import { useGetRecipeGetbyidRecipeId, usePutRecipeUpdateRecipeId } from '@/api/generated/myRecipeBookAPI';
+import { CookingTime, Difficulty, DishType, ResponseRecipeJson, ResponseErrorJson, RequestRecipeJson } from '@/api/generated/myRecipeBookAPI.schemas';
 
 interface RecipeFormData {
   title: string;
-  description: string;
   ingredients: string[];
   instructions: string[];
   image?: File;
+  cookingTime?: CookingTime;
+  difficulty?: Difficulty;
+  dishTypes?: DishType[];
 }
 
 export default function EditRecipePage({ params }: { params: { id: string } }) {
@@ -25,29 +25,32 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
-    description: '',
     ingredients: [''],
     instructions: [''],
   });
 
-  const { data: recipe } = trpc.recipe.getById.useQuery(params.id);
+  const { data: recipe } = useGetRecipeGetbyidRecipeId(params.id);
 
-  const updateRecipe = trpc.recipe.update.useMutation({
-    onSuccess: () => {
-      router.push(`/dashboard/recipes/${params.id}`);
-    },
-    onError: (error) => {
-      setError(error.message);
+  const updateRecipe = usePutRecipeUpdateRecipeId({
+    mutation: {
+      onSuccess: () => {
+        router.push(`/dashboard/recipes/${params.id}`);
+      },
+      onError: (error: ResponseErrorJson) => {
+        setError(error.errorMessages?.[0] || 'Failed to update recipe');
+      },
     },
   });
 
   useEffect(() => {
     if (recipe) {
       setFormData({
-        title: recipe.title,
-        description: recipe.description,
-        ingredients: recipe.ingredients,
-        instructions: recipe.instructions,
+        title: recipe.title || '',
+        ingredients: recipe.ingredients || [''],
+        instructions: recipe.instructions?.map(inst => inst.text || '') || [''],
+        cookingTime: recipe.cookingTime,
+        difficulty: recipe.difficulty,
+        dishTypes: recipe.dishTypes || undefined,
       });
     }
   }, [recipe]);
@@ -58,12 +61,23 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
     setError('');
 
     try {
-      await updateRecipe.mutateAsync({
-        id: params.id,
+      const recipeData: RequestRecipeJson = {
         title: formData.title,
-        description: formData.description,
         ingredients: formData.ingredients.filter(i => i.trim()),
-        instructions: formData.instructions.filter(i => i.trim()),
+        instructions: formData.instructions
+          .filter(i => i.trim())
+          .map((text, index) => ({
+            step: index + 1,
+            text
+          })),
+        cookingTime: formData.cookingTime,
+        difficulty: formData.difficulty,
+        dishTypes: formData.dishTypes
+      };
+
+      await updateRecipe.mutateAsync({
+        recipeId: params.id,
+        data: recipeData
       });
     } catch (err) {
       setError('Failed to update recipe. Please try again.');
@@ -125,20 +139,6 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
                 className="input-field mt-1"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description
-              </label>
-              <textarea
-                id="description"
-                required
-                rows={3}
-                className="input-field mt-1"
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               />
             </div>
 
