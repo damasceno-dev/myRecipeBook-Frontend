@@ -2,12 +2,30 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
-export default function DashboardNav() {
+export default function MainNav() {
   const pathname = usePathname();
+  const { data: session } = useSession();
 
   const isActive = (path: string) => pathname === path;
+
+  const handleSignOut = async () => {
+    try {
+      // Call the backend's user logout endpoint
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.token}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
+    } finally {
+      // Always sign out from NextAuth, even if backend logout fails
+      signOut({ callbackUrl: '/' });
+    }
+  };
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-sm">
@@ -15,25 +33,15 @@ export default function DashboardNav() {
         <div className="flex justify-between h-16">
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
-              <Link href="/dashboard" className="text-xl font-bold text-gray-900 dark:text-white">
+              <Link href="/myrecipes" className="text-xl font-bold text-gray-900 dark:text-white">
                 MyRecipeBook
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               <Link
-                href="/dashboard"
+                href="/myrecipes"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  isActive('/dashboard')
-                    ? 'border-blue-500 text-gray-900 dark:text-white'
-                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-              >
-                Dashboard
-              </Link>
-              <Link
-                href="/dashboard/recipes"
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  isActive('/dashboard/recipes')
+                  isActive('/myrecipes')
                     ? 'border-blue-500 text-gray-900 dark:text-white'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
@@ -41,9 +49,19 @@ export default function DashboardNav() {
                 My Recipes
               </Link>
               <Link
-                href="/dashboard/profile"
+                href="/myrecipes/recipes/new"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  isActive('/dashboard/profile')
+                  isActive('/myrecipes/recipes/new')
+                    ? 'border-blue-500 text-gray-900 dark:text-white'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                Create Recipe
+              </Link>
+              <Link
+                href="/myrecipes/profile"
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  isActive('/myrecipes/profile')
                     ? 'border-blue-500 text-gray-900 dark:text-white'
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
@@ -54,7 +72,7 @@ export default function DashboardNav() {
           </div>
           <div className="flex items-center">
             <button
-              onClick={() => signOut({ callbackUrl: '/' })}
+              onClick={handleSignOut}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
             >
               Sign out

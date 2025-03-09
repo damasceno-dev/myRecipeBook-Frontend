@@ -26,7 +26,7 @@ export function customInstance<T = any>(config: AxiosRequestConfig): Promise<T> 
 
   // Add response interceptor
   instance.interceptors.response.use(
-    (response) => response,
+    (response) => response.data,
     (error) => {
       if (error.response?.status === 401) {
         // Handle unauthorized access
@@ -35,7 +35,7 @@ export function customInstance<T = any>(config: AxiosRequestConfig): Promise<T> 
       if (error.response?.status === 500) {
         console.error('Server error:', error.response.data);
       }
-      return Promise.reject(error);
+      return Promise.reject(error.response?.data || error);
     }
   );
 

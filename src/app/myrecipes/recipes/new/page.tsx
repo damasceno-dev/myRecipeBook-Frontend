@@ -34,6 +34,8 @@ export default function NewRecipePage() {
       onSuccess: (data: ResponseRecipeJson) => {
         if (data?.id) {
           router.push(`/dashboard/recipes/${data.id}`);
+        } else {
+          setError('Failed to create recipe: No recipe ID received');
         }
       },
       onError: (error: ResponseErrorJson) => {
@@ -74,59 +76,22 @@ export default function NewRecipePage() {
     setError('');
 
     try {
-      const formDataToSend = new FormData();
-      formDataToSend.append('Title', formData.title);
-      
-      // Add ingredients
-      formData.ingredients
-        .filter(i => i.trim())
-        .forEach(ingredient => {
-          formDataToSend.append('Ingredients', ingredient);
-        });
-
-      // Add instructions
-      formData.instructions
-        .filter(i => i.trim())
-        .forEach((instruction, index) => {
-          formDataToSend.append('Instructions', JSON.stringify({
+      const recipeData = {
+        Title: formData.title,
+        Ingredients: formData.ingredients.filter(i => i.trim()),
+        Instructions: formData.instructions
+          .filter(i => i.trim())
+          .map((instruction, index) => ({
             Step: index + 1,
             Text: instruction
-          }));
-        });
-
-      // Add image if present
-      if (formData.image) {
-        formDataToSend.append('ImageFile', formData.image);
-      }
-
-      // Add optional fields if present
-      if (formData.cookingTime) {
-        formDataToSend.append('CookingTime', formData.cookingTime.toString());
-      }
-      if (formData.difficulty) {
-        formDataToSend.append('Difficulty', formData.difficulty.toString());
-      }
-      if (formData.dishTypes?.length) {
-        formData.dishTypes.forEach(type => {
-          formDataToSend.append('DishTypes', type.toString());
-        });
-      }
-
+          })),
+        ImageFile: formData.image,
+        CookingTime: formData.cookingTime,
+        Difficulty: formData.difficulty,
+        DishTypes: formData.dishTypes
+      };
       await createRecipe.mutateAsync({
-        data: {
-          ImageFile: formData.image,
-          Title: formData.title,
-          Ingredients: formData.ingredients.filter(i => i.trim()),
-          Instructions: formData.instructions
-            .filter(i => i.trim())
-            .map((text, index) => ({
-              Step: index + 1,
-              Text: text
-            })),
-          CookingTime: formData.cookingTime,
-          Difficulty: formData.difficulty,
-          DishTypes: formData.dishTypes
-        }
+        data: recipeData
       });
     } catch (err) {
       setError('Failed to create recipe. Please try again.');

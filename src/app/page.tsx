@@ -68,7 +68,7 @@ export default function LoginPage() {
           }
 
           // Use replace instead of push to prevent back navigation to login
-          router.replace('/dashboard');
+          router.replace('/myrecipes');
         } else {
           setError('Invalid email or password. Please check your credentials and try again.');
         }
@@ -116,7 +116,7 @@ export default function LoginPage() {
           }
 
           // Use replace instead of push to prevent back navigation to login
-          router.replace('/dashboard');
+          router.replace('/myrecipes');
         } else {
           setError('Registration successful but login failed. Please try logging in manually.');
         }
@@ -141,7 +141,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    signIn('google', { callbackUrl: '/dashboard' });
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent('http://localhost:3000/redirect-after-login')}`;
   };
 
   return (

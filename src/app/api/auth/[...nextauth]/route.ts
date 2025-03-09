@@ -8,6 +8,14 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      authorization: {
+        params: {
+          redirect_uri: `${process.env.NEXT_PUBLIC_API_URL}/signin-google`,
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     CredentialsProvider({
       name: 'Credentials',
@@ -16,9 +24,22 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null;
+        if (!credentials?.username) return null;
         
         try {
+          // If the password is a token, it's an external login
+          if (credentials.password?.includes('.')) {
+            // For external login, we'll use the token directly without password verification
+            return {
+              id: 'external',
+              name: credentials.username,
+              email: credentials.username,
+              token: credentials.password,
+              refreshToken: '', // External login doesn't need refresh token
+            };
+          }
+
+          // Regular login flow
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -62,8 +83,8 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       session.user = {
         ...session.user,
-        token: token.accessToken,
-        refreshToken: token.refreshToken,
+        token: token.accessToken as string | undefined,
+        refreshToken: token.refreshToken as string | undefined,
       };
       return session;
     },
