@@ -1,8 +1,9 @@
 import { defineConfig } from 'orval';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-// Load environment variables from .env.local
-dotenv.config({ path: '.env.local' });
+const envFile = process.env.ENV_FILE || '.env.local';
+dotenv.config({ path: path.resolve(process.cwd(), envFile) });
 
 export default defineConfig({
   myrecipebook: {

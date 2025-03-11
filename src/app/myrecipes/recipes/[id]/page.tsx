@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import DashboardNav from '@/components/DashboardNav';
 import { useGetRecipeGetbyidRecipeId, useDeleteRecipeDeletebyidRecipeId } from '@/api/generated/myRecipeBookAPI';
 import { ResponseRecipeJson, ResponseErrorJson } from '@/api/generated/myRecipeBookAPI.schemas';
+import MainNav from "@/components/MainNav";
 
 export default function RecipeDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -35,7 +35,7 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <DashboardNav />
+        <MainNav />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {isLoading ? (
             <div className="flex justify-center items-center h-64">

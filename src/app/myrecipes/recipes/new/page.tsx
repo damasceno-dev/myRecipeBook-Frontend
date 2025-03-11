@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import DashboardNav from '@/components/DashboardNav';
 import { usePostRecipeRegister } from '@/api/generated/myRecipeBookAPI';
 import { CookingTime, Difficulty, DishType, ResponseRecipeJson, ResponseErrorJson } from '@/api/generated/myRecipeBookAPI.schemas';
+import MainNav from "@/components/MainNav";
 
 interface RecipeFormData {
   title: string;
@@ -33,7 +33,7 @@ export default function NewRecipePage() {
     mutation: {
       onSuccess: (data: ResponseRecipeJson) => {
         if (data?.id) {
-          router.push(`/dashboard/recipes/${data.id}`);
+          router.push(`/myrecipes/recipes/${data.id}`);
         } else {
           setError('Failed to create recipe: No recipe ID received');
         }
@@ -103,7 +103,7 @@ export default function NewRecipePage() {
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <DashboardNav />
+        <MainNav />
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
             Create New Recipe

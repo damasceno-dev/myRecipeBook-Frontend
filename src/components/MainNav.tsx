@@ -1,31 +1,54 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
+import {usePathname} from 'next/navigation';
+import {signOut, useSession} from 'next-auth/react';
 
 export default function MainNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
 
   const isActive = (path: string) => pathname === path;
+  //
+  // const handleSignOut = async () => {
+  //   console.log('Signing out...');
+  //   try {
+  //     // Call the backend's user logout endpoint
+  //     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/logout`, {
+  //       method: 'POST',
+  //       headers: {
+  //         'Authorization': `Bearer ${session?.user?.token}`,
+  //       },
+  //     });
+  //   } catch (error) {
+  //     console.error('Error during logout:', error);
+  //   } finally {
+  //     // Always sign out from NextAuth, even if backend logout fails
+  //     signOut({ callbackUrl: '/' });
+  //   }
+  // };
 
-  const handleSignOut = async () => {
+  async function handleSignOut() {
     try {
-      // Call the backend's user logout endpoint
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/logout`, {
+      const response = await fetch('https://localhost:7219/user/logout', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.user?.token}`,
-        },
+        credentials: 'include'
       });
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Logout failed with status", response.status, text);
+      } else {
+        console.log("Logout successful");
+        // Proceed with any further steps, e.g., redirect to login page
+      }
     } catch (error) {
-      console.error('Error during logout:', error);
-    } finally {
-      // Always sign out from NextAuth, even if backend logout fails
-      signOut({ callbackUrl: '/' });
+      console.error("Error during logout:", error);
     }
-  };
+    finally {
+      const { url } = await signOut({ callbackUrl: '/', redirect: false });
+      window.location.href = url || '/';
+    }
+  }
 
   return (
     <nav className="bg-white dark:bg-gray-800 shadow-sm">

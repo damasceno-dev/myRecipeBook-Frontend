@@ -6,8 +6,13 @@ import { useRouter } from 'next/navigation';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Image from 'next/image';
 import { usePostUserRegister, usePostUserLogin } from '@/api/generated/myRecipeBookAPI';
+console.log('Before LoginPage definition');
 
 export default function LoginPage() {
+  console.log('entrei no componente login')
+  console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
+  console.log('NEXTAUTH_URL:', process.env.NEXT_PUBLIC_AUTH_URL);
+
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -141,7 +146,10 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent('http://localhost:3000/redirect-after-login')}`;
+    console.log('login page:')
+    console.log(`${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent(`${process.env.NEXT_PUBLIC_AUTH_URL}/redirect-after-login`)}`)
+    
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent(`${process.env.NEXT_PUBLIC_AUTH_URL}/redirect-after-login`)}`;
   };
 
   return (

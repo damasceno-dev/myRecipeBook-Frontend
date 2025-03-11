@@ -1,11 +1,16 @@
 import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 import { getSession } from 'next-auth/react';
+import * as https from "https";
 
 export function customInstance<T = any>(config: AxiosRequestConfig): Promise<T> {
   const instance = axios.create({
     baseURL: `${process.env.NEXT_PUBLIC_API_URL}`,
     timeout: 10000,
-    headers: {
+  httpsAgent: new https.Agent({
+      rejectUnauthorized: false // DEVELOPMENT ONLY
+  }),
+
+      headers: {
       'Content-Type': 'application/json',
     },
   });
