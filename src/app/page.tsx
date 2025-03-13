@@ -1,18 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import React, {useState} from 'react';
+import {signIn} from 'next-auth/react';
+import {useRouter} from 'next/navigation';
+import {ThemeToggle} from '@/components/ThemeToggle';
 import Image from 'next/image';
-import { usePostUserRegister, usePostUserLogin } from '@/api/generated/myRecipeBookAPI';
-console.log('Before LoginPage definition');
+import {usePostUserLogin} from '@/api/generated/myRecipeBookAPI';
+
 
 export default function LoginPage() {
-  console.log('entrei no componente login')
-  console.log('NEXT_PUBLIC_API_URL:', process.env.NEXT_PUBLIC_API_URL);
-  console.log('NEXTAUTH_URL:', process.env.NEXT_PUBLIC_AUTH_URL);
-
   const [isLogin, setIsLogin] = useState(true);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -22,17 +18,8 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
-
-  const registerMutation = usePostUserRegister();
+  
   const loginMutation = usePostUserLogin();
-
-  const clearForm = () => {
-    setName('');
-    setEmail('');
-    setPassword('');
-    setConfirmPassword('');
-    setError('');
-  };
 
   const toggleAuthMode = () => {
     setIsAnimating(true);
@@ -49,14 +36,14 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        console.log('Attempting login with:', { email, password });
+        
         const result = await loginMutation.mutateAsync({
           data: {
             email: email.trim().toLowerCase(),
             password: password.trim(),
           },
         });
-        console.log('Login response:', result);
+        
 
         // Check both possible response structures
         if (result?.responseToken || (result as any)?.data?.responseToken) {
@@ -84,27 +71,14 @@ export default function LoginPage() {
           setIsLoading(false);
           return;
         }
-
-        // Handle registration
-        console.log('Attempting registration with:', { name, email, password });
-        const result = await registerMutation.mutateAsync({
-          data: {
-            name: name.trim(),
-            email: email.trim().toLowerCase(),
-            password: password.trim(),
-          },
-        });
-        console.log('Registration response:', result);
-
+        
         // After successful registration, automatically log in
-        console.log('Attempting auto-login after registration');
         const loginResult = await loginMutation.mutateAsync({
           data: {
             email: email.trim().toLowerCase(),
             password: password.trim(),
           },
         });
-        console.log('Auto-login response:', loginResult);
 
         // Check both possible response structures
         if (loginResult?.responseToken || (loginResult as any)?.data?.responseToken) {
@@ -146,9 +120,6 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = () => {
-    console.log('login page:')
-    console.log(`${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent(`${process.env.NEXT_PUBLIC_AUTH_URL}/redirect-after-login`)}`)
-    
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent(`${process.env.NEXT_PUBLIC_AUTH_URL}/redirect-after-login`)}`;
   };
 

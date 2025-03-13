@@ -7,6 +7,9 @@ const envFile = process.env.ENV_FILE || '.env.local';
 dotenv.config({ path: path.resolve(__dirname, envFile) });
 
 const nextConfig = {
+    images: {
+        domains: ['myrecipebook-s3-bucket.s3.amazonaws.com'],
+    },
     webpack: (config, { isServer }) => {
         if (!isServer) {
             // Provide fallbacks for Node.js core modules (non-prefixed)

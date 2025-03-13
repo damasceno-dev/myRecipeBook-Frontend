@@ -11,11 +11,6 @@ import { useRouter } from 'next/navigation';
 interface FilterOptions {
   search: string;
 }
-
-interface ApiResponse {
-  data: ResponseShortRecipeJson[];
-}
-
 export default function MyRecipesPage() {
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     search: '',
@@ -132,12 +127,13 @@ export default function MyRecipesPage() {
               {filteredRecipes.map((recipe) => (
                 <div
                   key={recipe.id}
-                  className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800 dark:border-gray-700"
+                  className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md dark:bg-gray-800 dark:border-gray-700 cursor-pointer"
+                  onClick={() => router.push(`/myrecipes/recipes/${recipe.id}`)}
                 >
                   <img
-                    src={recipe.imageUrl || '/placeholder-recipe.jpg'}
+                    src={recipe.imageUrl || '/placeholder-recipe.svg'}
                     alt={recipe.title || 'Recipe'}
-                    className="h-48 w-full object-cover"
+                    className="h-48 w-full object-contain"
                   />
                   <div className="p-4">
                     <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{recipe.title || 'Untitled Recipe'}</h3>

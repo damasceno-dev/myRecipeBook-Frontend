@@ -13,6 +13,7 @@ export default function RedirectAfterLogin() {
       const token = searchParams.get('token');
       const name = searchParams.get('name');
       const email = searchParams.get('email');
+      console.log(token);
 
       if (token && name && email) {
         // For external login, we pass the token as the password
