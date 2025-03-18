@@ -13,7 +13,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "dev:https": "cross-env NODE_ENV=development ENV_FILE=.env.local.https node server.js",
+    "dev:https": "cross-env NODE_ENV=development ENV_FILE=.env.local.https NODE_TLS_REJECT_UNAUTHORIZED=0 node server.js",
     "generate:dev": "orval --config orval.config.ts",
     "generate:dev:https": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 orval --config orval.config.ts"
   },

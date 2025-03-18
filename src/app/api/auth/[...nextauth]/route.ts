@@ -24,8 +24,9 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log("Authorize called with credentials:", credentials);
         if (!credentials?.username) return null;
-        
+
         try {
           // If the password is a token, it's an external login
           if (credentials.password?.includes('.')) {
@@ -48,8 +49,9 @@ export const authOptions: NextAuthOptions = {
               password: credentials.password,
             }),
           });
-
+          console.log("API response status:", response.status);
           const data = await response.json();
+          console.log("API response data:", data);
 
           if (response.ok && data?.responseToken) {
             return {
@@ -60,18 +62,18 @@ export const authOptions: NextAuthOptions = {
               refreshToken: data.responseToken.refreshToken,
             };
           }
+          // Instead of returning null (which triggers default error handling),
+          // throw a specific error object that we can handle 
+          console.error('Auth failed:', data);
           return null;
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          // Explicitly throw with a message we can handle
+          throw new Error(error instanceof Error ? error.message : "Authentication error");
         }
       }
     })
   ],
-  pages: {
-    signIn: '/',
-    error: '/',
-  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -88,11 +90,23 @@ export const authOptions: NextAuthOptions = {
       };
       return session;
     },
+    // Add this to prevent default redirects on errors
+    async redirect({ url, baseUrl }) {
+      // Always return the original URL to prevent NextAuth's redirection logic
+      return url.startsWith(baseUrl) ? url : baseUrl;
+    }
   },
   session: {
     strategy: 'jwt',
   },
+  // Add custom pages to override default behaviors
+  pages: {
+    signIn: '/login',
+    error: '/login', // Redirect back to login on error instead of home
+  },
+  // Add this to ensure errors don't cause redirects
+  debug: process.env.NODE_ENV === 'development',
 }
 
 const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST } 
+export { handler as GET, handler as POST }

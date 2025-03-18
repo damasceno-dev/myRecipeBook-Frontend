@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
-import { getSession } from 'next-auth/react';
+import axios, {AxiosRequestConfig} from 'axios';
+import {getSession} from 'next-auth/react';
 import * as https from "https";
 
 export function customInstance<T = any>(config: AxiosRequestConfig): Promise<T> {
@@ -30,19 +30,24 @@ export function customInstance<T = any>(config: AxiosRequestConfig): Promise<T> 
   );
 
   // Add response interceptor
-  instance.interceptors.response.use(
-    (response) => response.data,
-    (error) => {
-      if (error.response?.status === 401) {
-        // Handle unauthorized access
-        window.location.href = '/';
-      }
-      if (error.response?.status === 500) {
-        console.error('Server error:', error.response.data);
-      }
-      return Promise.reject(error.response?.data || error);
-    }
-  );
+// Add response interceptor
+    instance.interceptors.response.use(
+        (response) => response.data,
+        (error) => {
+            // Don't redirect to home for login/registration API paths
+            const isAuthPath = error.config?.url?.includes('/login') || error.config?.url?.includes('/register');
+
+            if (error.response?.status === 401 && !isAuthPath) {
+                // Handle unauthorized access - only redirect for non-auth paths
+                window.location.href = '/';
+            }
+
+            if (error.response?.status === 500) {
+                console.error('Server error:', error.response.data);
+            }
+            return Promise.reject(error.response?.data || error);
+        }
+    );
 
   return instance.request(config);
 }

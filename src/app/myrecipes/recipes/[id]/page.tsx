@@ -112,35 +112,71 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                       </div>
                     </div>
 
-                    {recipe.cookingTime && (
-                        <div className="mb-4">
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Cooking Time: {recipe.cookingTime}
-                    </span>
-                        </div>
-                    )}
+                    // Add this code in the recipe details section, below the recipe title
 
-                    {recipe.difficulty && (
-                        <div className="mb-4">
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Difficulty: {recipe.difficulty}
-                    </span>
-                        </div>
-                    )}
+                    <div className="mb-8 space-y-2 text-gray-700 dark:text-gray-300">
+                      {/* Cooking Time */}
+                      {recipe.cookingTime !== undefined && (
+                          <div className="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium">Cooking Time: </span>
+                            <span className="ml-1">
+        {recipe.cookingTime === 0 ? 'Less than 10 minutes' :
+            recipe.cookingTime === 1 ? 'Between 10 and 30 minutes' :
+                recipe.cookingTime === 2 ? 'Between 30 and 60 minutes' :
+                    recipe.cookingTime === 3 ? 'Greater than 60 minutes' : 'Not specified'}
+      </span>
+                          </div>
+                      )}
 
-                    {recipe.dishTypes && recipe.dishTypes.length > 0 && (
-                        <div className="mb-4">
-                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                      Dish Types: {recipe.dishTypes.join(', ')}
-                    </span>
-                        </div>
-                    )}
+                      {/* Difficulty */}
+                      {recipe.difficulty !== undefined && (
+                          <div className="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+                            </svg>
+                            <span className="font-medium">Difficulty: </span>
+                            <span className="ml-1">
+        {recipe.difficulty === 0 ? 'Low' :
+            recipe.difficulty === 1 ? 'Medium' :
+                recipe.difficulty === 2 ? 'High' : 'Not specified'}
+      </span>
+                          </div>
+                      )}
+
+                      {/* Dish Types */}
+                      {recipe.dishTypes && recipe.dishTypes.length > 0 && (
+                          <div className="flex items-start">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 mt-0.5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                            </svg>
+                            <div className="flex gap-3">
+                              <span className="font-medium">Dish Types: </span>
+                              <div className="ml-1 flex flex-wrap gap-1 mt-1">
+                                {recipe.dishTypes.map((type) => (
+                                    <span key={type} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">
+                                      {type === 0 ? 'Appetizers' :
+                                          type === 1 ? 'Breakfast' :
+                                              type === 2 ? 'Dessert' :
+                                                  type === 3 ? 'Dinner' :
+                                                      type === 4 ? 'Drinks' :
+                                                          type === 5 ? 'Lunch' :
+                                                              type === 6 ? 'Snacks' : `Type ${type}`}
+                                    </span>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                      )}
+                    </div>
 
                     <div className="mb-8">
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                         Ingredients
                       </h2>
-                      <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300">
+                      <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300 marker:text-blue-500">
                         {recipe.ingredients?.map((ingredient, index) => (
                             <li key={index}>{ingredient}</li>
                         ))}
@@ -151,9 +187,9 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                       <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                         Instructions
                       </h2>
-                      <ol className="list-decimal list-inside space-y-4 text-gray-600 dark:text-gray-300">
+                      <ol className="list-decimal list-inside space-y-4 text-gray-600 dark:text-gray-300 marker:text-blue-500">
                         {recipe.instructions?.map((instruction, index) => (
-                            <li key={index} className="ml-2">{instruction.text}</li>
+                            <li key={index} className="ml-2 marker:text-blue-500">{instruction.text}</li>
                         ))}
                       </ol>
                     </div>

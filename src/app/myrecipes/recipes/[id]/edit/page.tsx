@@ -200,6 +200,99 @@ console.log(formData.image)
               />
             </div>
 
+            {/* Cooking Time and Difficulty */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Cooking Time Selector */}
+              <div>
+                <label htmlFor="cookingTime" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Cooking Time
+                </label>
+                <select
+                    id="cookingTime"
+                    className=" text-gray-600 p-4 -1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={formData.cookingTime !== undefined ? formData.cookingTime : ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      cookingTime: e.target.value === '' ? undefined : Number(e.target.value) as CookingTime
+                    })}
+                >
+                  <option value="">Select cooking time</option>
+                  <option value={0}>Less than 10 minutes</option>
+                  <option value={1}>Between 10 and 30 minutes</option>
+                  <option value={2}>Between 30 and 60 minutes</option>
+                  <option value={3}>Greater than 60 minutes</option>
+                </select>
+              </div>
+
+              {/* Difficulty Selector */}
+              <div>
+                <label htmlFor="difficulty" className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Difficulty
+                </label>
+                <select
+                    id="difficulty"
+                    className="text-gray-600 p-4 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    value={formData.difficulty !== undefined ? formData.difficulty : ''}
+                    onChange={(e) => setFormData({
+                      ...formData,
+                      difficulty: e.target.value === '' ? undefined : Number(e.target.value) as Difficulty
+                    })}
+                >
+                  <option value="">Select difficulty</option>
+                  <option value={0}>Low</option>
+                  <option value={1}>Medium</option>
+                  <option value={2}>High</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Dish Types */}
+            <div className="mb-6">
+              <span className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                Dish Types
+              </span>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-1">
+                {[
+                  { value: 0, label: 'Appetizers' },
+                  { value: 1, label: 'Breakfast' },
+                  { value: 2, label: 'Dessert' },
+                  { value: 3, label: 'Dinner' },
+                  { value: 4, label: 'Drinks' },
+                  { value: 5, label: 'Lunch' },
+                  { value: 6, label: 'Snacks' }
+                ].map((type) => (
+                    <div key={type.value} className="flex items-center">
+                      <input
+                          id={`dishType-${type.value}`}
+                          type="checkbox"
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600"
+                          checked={formData.dishTypes?.includes(type.value as DishType) || false}
+                          onChange={(e) => {
+                            const currentTypes = formData.dishTypes || [];
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                dishTypes: [...currentTypes, type.value as DishType]
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                dishTypes: currentTypes.filter(t => t !== type.value)
+                              });
+                            }
+                          }}
+                      />
+                      <label
+                          htmlFor={`dishType-${type.value}`}
+                          className="ml-2 block text-sm text-gray-700 dark:text-gray-200"
+                      >
+                        {type.label}
+                      </label>
+                    </div>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Ingredients

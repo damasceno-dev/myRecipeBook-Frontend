@@ -5,7 +5,7 @@ import {signIn} from 'next-auth/react';
 import {useRouter} from 'next/navigation';
 import {ThemeToggle} from '@/components/ThemeToggle';
 import Image from 'next/image';
-import {usePostUserLogin} from '@/api/generated/myRecipeBookAPI';
+import {usePostUserLogin, usePostUserRegister} from '@/api/generated/myRecipeBookAPI';
 
 
 export default function LoginPage() {
@@ -18,8 +18,9 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
-  
+
   const loginMutation = usePostUserLogin();
+  const registerMutation = usePostUserRegister();
 
   const toggleAuthMode = () => {
     setIsAnimating(true);
@@ -36,93 +37,79 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        
-        const result = await loginMutation.mutateAsync({
+        // Login flow
+        await loginMutation.mutateAsync({
           data: {
             email: email.trim().toLowerCase(),
             password: password.trim(),
           },
         });
-        
 
-        // Check both possible response structures
-        if (result?.responseToken || (result as any)?.data?.responseToken) {
-          // Sign in with NextAuth to manage the session
-          const signInResult = await signIn('credentials', {
-            username: email.trim().toLowerCase(),
-            password: password.trim(),
-            redirect: false,
-          });
+        const signInResult = await signIn('credentials', {
+          username: email.trim().toLowerCase(),
+          password: password.trim(),
+          redirect: false,
+          callbackUrl: '/myrecipes',
+        });
 
-          if (signInResult?.error) {
-            setError('Failed to establish session. Please try again.');
-            return;
-          }
-
-          // Use replace instead of push to prevent back navigation to login
+        if (signInResult?.ok) {
           router.replace('/myrecipes');
         } else {
-          setError('Invalid email or password. Please check your credentials and try again.');
+          setError('Failed to establish session. Please try again.');
         }
       } else {
-        // Validate passwords match
+        // Registration flow
         if (password !== confirmPassword) {
           setError('Passwords do not match');
-          setIsLoading(false);
-          return;
         }
-        
-        // After successful registration, automatically log in
-        const loginResult = await loginMutation.mutateAsync({
+
+        // Register the user
+        await registerMutation.mutateAsync({
+          data: {
+            name: name.trim(),
+            email: email.trim().toLowerCase(),
+            password: password.trim(),
+          },
+        });
+
+        // Automatically log in after successful registration
+        await loginMutation.mutateAsync({
           data: {
             email: email.trim().toLowerCase(),
             password: password.trim(),
           },
         });
 
-        // Check both possible response structures
-        if (loginResult?.responseToken || (loginResult as any)?.data?.responseToken) {
-          // Sign in with NextAuth to manage the session
-          const signInResult = await signIn('credentials', {
-            username: email.trim().toLowerCase(),
-            password: password.trim(),
-            redirect: false,
-          });
+        const signInResult = await signIn('credentials', {
+          username: email.trim().toLowerCase(),
+          password: password.trim(),
+          redirect: false,
+          callbackUrl: '/myrecipes',
+        });
 
-          if (signInResult?.error) {
-            setError('Registration successful but failed to establish session. Please try logging in manually.');
-            return;
-          }
-
-          // Use replace instead of push to prevent back navigation to login
+        if (signInResult?.ok) {
           router.replace('/myrecipes');
         } else {
-          setError('Registration successful but login failed. Please try logging in manually.');
+          setError('Registration successful but unable to log in automatically.');
         }
       }
-    } catch (error) {
-      console.error('Error details:', error);
-      if (error instanceof Error) {
-        const apiError = error as any;
-        if (apiError.response?.data?.errorMessages) {
-          setError(apiError.response.data.errorMessages.join(', '));
-        } else if (apiError.response?.data?.message) {
-          setError(apiError.response.data.message);
-        } else {
-          setError(error.message);
-        }
-      } else {
-        setError('An error occurred. Please try again.');
+    } catch (err: any) {
+      console.error('Authentication error:', err);
+
+      // Extract error messages from API response
+      if (err?.errorMessages) {
+        setError(`${err.errorMessages.join('. ')}.`);
+      }  else {
+        setError('An unexpected error occurred');
       }
     } finally {
       setIsLoading(false);
     }
   };
-
   const handleGoogleSignIn = () => {
     window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/user/login/google?returnUrl=${encodeURIComponent(`${process.env.NEXT_PUBLIC_AUTH_URL}/redirect-after-login`)}`;
   };
-
+  
   return (
     <div className="min-h-screen flex items-center justify-center p-12">
       <ThemeToggle />
@@ -142,7 +129,14 @@ export default function LoginPage() {
             </button>
           </p>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <form className="mt-8 space-y-6" onSubmit={(e) => {
+          e.preventDefault();
+          handleSubmit(e);
+        }}
+              method="post"
+              action="#"
+              noValidate
+        >
           {error && (
             <div className="rounded-md bg-red-50 dark:bg-red-900 p-4">
               <p className="text-sm text-red-700 dark:text-red-200">{error}</p>
@@ -183,6 +177,7 @@ export default function LoginPage() {
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                autoComplete="email"
               />
             </div>
             <div className="transform transition-all duration-500 ease-in-out">
@@ -197,7 +192,9 @@ export default function LoginPage() {
                 className="input-field"
                 placeholder="Password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}  
+                autoComplete={isLogin ? "current-password" : "new-password"}
+
               />
             </div>
             <div
@@ -219,15 +216,20 @@ export default function LoginPage() {
                 placeholder="Confirm Password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
               />
             </div>
           </div>
 
           <div>
             <button
-              type="submit"
-              className="btn-primary"
-              disabled={isLoading || isAnimating}
+                type="button"
+                className="btn-primary"
+                disabled={isLoading || isAnimating}
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }}
             >
               {isLoading ? (isLogin ? 'Signing in...' : 'Creating account...') : (isLogin ? 'Sign in' : 'Create account')}
             </button>
