@@ -18,7 +18,7 @@ export default function MyRecipesPage() {
   const [filteredRecipes, setFilteredRecipes] = useState<ResponseShortRecipeJson[]>([]);
   const router = useRouter();
 
-  const { data: recipes, isLoading, error } = useGetRecipeGetbyuserNumberOfRecipes(10);
+  const { data: recipes, isLoading, error } = useGetRecipeGetbyuserNumberOfRecipes(99);
 
   useEffect(() => {
     if (!recipes) return;

@@ -4,6 +4,7 @@ import {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import {
+  getRecipeGetbyidRecipeId,
   useGetRecipeGetbyidRecipeId,
   usePutRecipeUpdateRecipeId,
   usePutUpdateImageRecipeId
@@ -29,7 +30,7 @@ interface RecipeFormData {
 
 export default function EditRecipePage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [formData, setFormData] = useState<RecipeFormData>({
     title: '',
@@ -38,12 +39,30 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   });
 
   const [preview, setPreview] = useState<string | null>(null);
+
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [loadingDots, setLoadingDots] = useState('.');
+  const [imageLoaded, setImageLoaded] = useState(true); // Set to true if no image is being updated
+// Add this state variable to keep track of the original image URL
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null | undefined>(null);
+
+
+// Add this function to check if the image has loaded
+  const checkImageLoaded = async (imageUrl: string): Promise<boolean> => {
+    return new Promise<boolean>((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = imageUrl;
+    });
+  };
+
   const { data: recipe } = useGetRecipeGetbyidRecipeId(params.id);
 
   const updateRecipe = usePutRecipeUpdateRecipeId({
     mutation: {
       onSuccess: () => {
-        router.push(`/myrecipes/recipes/${params.id}`);
+        // Don't redirect here, wait for image update
       },
       onError: (error: ResponseErrorJson) => {
         setError(error.errorMessages?.[0] || 'Failed to update recipe');
@@ -53,7 +72,7 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   const updateImage = usePutUpdateImageRecipeId({
     mutation: {
       onSuccess: () => {
-        router.push(`/myrecipes/recipes/${params.id}`);
+        // Don't redirect here, wait for image update
       },
       onError: (error: ResponseErrorJson) => {
         setError(error.errorMessages?.[0] || 'Failed to update recipe image');
@@ -61,40 +80,15 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
     },
   });
 
-  useEffect(() => {
-    if (recipe) {
-      setFormData((prev) => ({
-        ...prev,
-        title: recipe.title || '',
-        ingredients: recipe.ingredients || [''],
-        instructions: recipe.instructions?.map(inst => inst.text || '') || [''],
-        cookingTime: recipe.cookingTime,
-        difficulty: recipe.difficulty,
-        dishTypes: recipe.dishTypes || undefined,
-      }));
-    }
-  }, [recipe]);
-
-  useEffect(() => {
-    return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview);
-      }
-    };
-  }, [preview]);
-
-  useEffect(() => {
-    console.log('Updated formData:', formData);
-  }, [formData]);
-
-
+  // The updated handleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setIsUpdating(true);
     setError('');
+    setImageLoaded(false);
 
     try {
-      console.log('entrei aqui')
       const recipeData: RequestRecipeJson = {
         title: formData.title,
         ingredients: formData.ingredients.filter(i => i.trim()),
@@ -109,30 +103,61 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
         dishTypes: formData.dishTypes
       };
 
-      // Update recipe details
+      // Update recipe details first
       await updateRecipe.mutateAsync({
         recipeId: params.id,
         data: recipeData
       });
-console.log(formData.image)
-// In your handleSubmit function
+
+      // If there's a new image, update it
       if (formData.image) {
-        console.log('Selected file:', formData.image);
+        console.log('Updating image:', formData.image.name);
         await updateImage.mutateAsync({
           recipeId: params.id,
           data: { file: formData.image },
         });
+
+        // Wait for the image to be available
+        let imageReady = false;
+        const startTime = Date.now();
+        const maxWaitTime = 20000; // 20 seconds maximum wait
+
+        while (!imageReady && Date.now() - startTime < maxWaitTime) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const updatedRecipe = await getRecipeGetbyidRecipeId(params.id);
+          
+          if (updatedRecipe.imageUrl && updatedRecipe.imageUrl !== originalImageUrl) {
+            // Verify the new image loads
+            imageReady = await checkImageLoaded(updatedRecipe.imageUrl);
+            if (imageReady) {
+              setImageLoaded(true);
+              break;
+            }
+          }
+        }
+
+        if (!imageReady) {
+          console.warn("Image not confirmed loaded after timeout, proceeding anyway");
+          setImageLoaded(true);
+        }
       } else {
-        router.push(`/myrecipes/recipes/${params.id}`);
+        setImageLoaded(true);
       }
 
+      // Add a small delay before redirecting to ensure the server has processed the image
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Navigate to recipe page with a timestamp to force refresh
+      router.push(`/myrecipes/recipes/${params.id}?t=${Date.now()}`);
 
     } catch (err) {
+      console.error("Update error:", err);
       setError('Failed to update recipe. Please try again.');
-    } finally {
+      setIsUpdating(false);
       setIsLoading(false);
     }
   };
+
   const handleAddIngredient = () => {
     setFormData(prev => ({
       ...prev,
@@ -168,8 +193,53 @@ console.log(formData.image)
       setPreview(null);
     }
   };
+  
+// Add this useEffect to animate the loading dots
+  useEffect(() => {
+    if (!isUpdating) return;
+
+    const interval = setInterval(() => {
+      setLoadingDots(prev => {
+        if (prev === '.') return '..';
+        if (prev === '..') return '...';
+        if (prev === '...') return '....';
+        return '.';
+      });
+    }, 400);
+
+    return () => clearInterval(interval);
+  }, [isUpdating]);
+
+  useEffect(() => {
+    if (recipe) {
+      setFormData((prev) => ({
+        ...prev,
+        title: recipe.title || '',
+        ingredients: recipe.ingredients || [''],
+        instructions: recipe.instructions?.map(inst => inst.text || '') || [''],
+        cookingTime: recipe.cookingTime,
+        difficulty: recipe.difficulty,
+        dishTypes: recipe.dishTypes || undefined,
+      }));
+
+      // Store the original image URL
+      setOriginalImageUrl(recipe.imageUrl);
+    }
+  }, [recipe]);
 
 
+  useEffect(() => {
+    return () => {
+      if (preview) {
+        URL.revokeObjectURL(preview);
+      }
+    };
+  }, [preview]);
+
+  useEffect(() => {
+    console.log('Updated formData:', formData);
+  }, [formData]);
+  
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -358,18 +428,31 @@ console.log(formData.image)
               )}
 
             </div>
-            <div className="flex items-start mt-4 gap-4">
+            <div className="flex flex-col md:flex-row items-start mt-4 gap-4 [&>button]:w-full md:[&>button:first-child]:w-4/5 md:[&>button:last-child]:w-1/5">
               <button
                   type="submit"
-                  className="w-3/4 px-10 py-2 bg-blue-600 text-white rounded hover:bg-blue-400 transition duration-300"
-                  disabled={isLoading}
+                  disabled={isUpdating}
+                  className="relative overflow-hidden flex justify-center items-center py-3 px-4 rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-75"
               >
-                {isLoading ? 'Updating...' : 'Update Recipe'}
+                <span className="relative z-10">
+                  {isUpdating ? `Updating Recipe${loadingDots}` : 'Update Recipe'}
+                </span>
+
+                {isUpdating && (
+                    <div
+                        className="absolute top-0 left-0 h-full bg-blue-400 transition-all duration-500"
+                        style={{
+                          width: imageLoaded ? '100%' : formData.image ? '50%' : '90%',
+                          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                    />
+                )}
               </button>
               <button
                   type="button"
-                  className="w-1/4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-400 transition duration-300"
+                  className="px-4 py-3 bg-red-600 text-white rounded hover:bg-red-700 transition duration-300 disabled:opacity-50"
                   onClick={() => router.back()}
+                  disabled={isUpdating}
               >
                 Cancel
               </button>

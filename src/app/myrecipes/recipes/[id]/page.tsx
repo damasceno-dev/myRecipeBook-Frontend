@@ -1,21 +1,86 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import Image from 'next/image';
+import NextImage from 'next/image';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import {useDeleteRecipeDeletebyidRecipeId, useGetRecipeGetbyidRecipeId} from '@/api/generated/myRecipeBookAPI';
 import {ResponseErrorJson} from '@/api/generated/myRecipeBookAPI.schemas';
 import MainNav from '@/components/MainNav';
+import {useQueryClient} from "@tanstack/react-query";
 
 export default function RecipeDetailsPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [error, setError] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-
-  const { data: recipe, isLoading } = useGetRecipeGetbyidRecipeId(params.id);
+  const queryClient = useQueryClient();
+  const [imageKey, setImageKey] = useState(Date.now());
   const [imgSrc, setImgSrc] = useState<string | null>(null);
   const [isImgLoading, setIsImgLoading] = useState<boolean>(true);
+  const [isImageUpdating, setIsImageUpdating] = useState<boolean>(false);
+
+  // Use a ref to track if we've already handled an image URL
+  const processedImageUrlRef = useRef<string | null>(null);
+
+  // Use query without excessive options
+  const { data: recipe, isLoading, refetch } = useGetRecipeGetbyidRecipeId(params.id, {
+    query: {
+      refetchOnMount: true,
+      staleTime: 0, // Always fetch fresh data
+      cacheTime: 0, // Don't cache the data
+    }
+  });
+
+  // Effect to handle image URL changes
+  useEffect(() => {
+    if (recipe?.imageUrl) {
+      // Always use a new timestamp to force cache refresh
+      const timestamp = Date.now();
+      const imageUrlBase = recipe.imageUrl.split('?')[0];
+      const newImageUrl = `${imageUrlBase}?v=${timestamp}`;
+
+      // Always update the image URL and key to force a refresh
+      console.log('Updating image URL:', newImageUrl);
+      setIsImageUpdating(true);
+      setIsImgLoading(true);
+      
+      // Set the new image URL and key
+      setImgSrc(newImageUrl);
+      setImageKey(timestamp);
+      processedImageUrlRef.current = newImageUrl;
+
+      // Prefetch the image
+      const img = new Image();
+      img.src = newImageUrl;
+      img.onload = () => {
+        console.log('Image prefetched successfully');
+        setIsImgLoading(false);
+        setIsImageUpdating(false);
+      };
+      img.onerror = () => {
+        console.error('Failed to load image');
+        setIsImgLoading(false);
+        setIsImageUpdating(false);
+      };
+    }
+  }, [recipe?.imageUrl]);
+
+  // Force refresh when component mounts
+  useEffect(() => {
+    refetch();
+  }, []);
+
+  // Handle image update and refreshing
+  const handleManualRefresh = () => {
+    console.log('Manually refreshing...');
+    // Force invalidate the query cache
+    queryClient.invalidateQueries({
+      queryKey: ['getRecipeGetbyidRecipeId', params.id]
+    });
+    refetch();
+    // Force a new image key
+    setImageKey(Date.now());
+  };
 
   const deleteRecipe = useDeleteRecipeDeletebyidRecipeId({
     mutation: {
@@ -41,15 +106,6 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
     setShowDeleteModal(false);
   };
 
-  useEffect(() => {
-    if (recipe && recipe.imageUrl) {
-      setImgSrc(recipe.imageUrl);
-      setIsImgLoading(true);
-    }
-  }, [recipe]);
-
-
-
   return (
       <ProtectedRoute>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -65,31 +121,37 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                 </div>
             ) : recipe ? (
                 <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
+                  {/* Image with refresh button */}
                   {imgSrc && (
-                      <div className="relative h-96">
+                      <div className="relative h-96 mb-6">
                         {isImgLoading && (
-                            <div className="absolute inset-0 flex justify-center items-center bg-gray-100 dark:bg-gray-700">
+                            <div className="absolute inset-0 flex justify-center items-center bg-gray-100">
                               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
                             </div>
                         )}
-                        <Image
+                        <NextImage
+                            key={imageKey}
                             src={imgSrc}
-                            alt={recipe.title || 'Recipe'}
+                            alt={recipe.title || 'Recipe image'}
                             fill
-                            className="object-cover"
+                            className="object-cover rounded-lg"
                             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             onLoad={() => setIsImgLoading(false)}
-                            onError={() => {
-                              // Remove fallback logic.
-                              // When an error occurs, we deliberately keep the spinner visible until the image is
-                              // loaded.
-                              console.error('Error loading image from S3.');
-                            }}
+                            unoptimized={true}
+                            priority={true}
                         />
+
+                        {/* Refresh button */}
+                        <button
+                            onClick={handleManualRefresh}
+                            className="absolute bottom-4 right-4 bg-white dark:bg-gray-800 p-2 rounded-full shadow hover:bg-gray-100 dark:hover:bg-gray-700"
+                            aria-label="Refresh image"
+                            disabled={isImageUpdating}
+                        >
+                          {isImageUpdating ? '🔄' : '🔄'}
+                        </button>
                       </div>
                   )}
-
-
 
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-6">
@@ -111,8 +173,6 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                         </button>
                       </div>
                     </div>
-
-                    // Add this code in the recipe details section, below the recipe title
 
                     <div className="mb-8 space-y-2 text-gray-700 dark:text-gray-300">
                       {/* Cooking Time */}
@@ -195,7 +255,6 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                     </div>
                   </div>
                 </div>
-
             ) : null}
             <button
                 onClick={() => router.push('/myrecipes')}
