@@ -2,31 +2,13 @@
 
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {signOut, useSession} from 'next-auth/react';
+import {signOut} from 'next-auth/react';
+import {Plus, Sparkles} from 'lucide-react';
 
 export default function MainNav() {
   const pathname = usePathname();
-  const { data: session } = useSession();
 
   const isActive = (path: string) => pathname === path;
-  //
-  // const handleSignOut = async () => {
-  //   console.log('Signing out...');
-  //   try {
-  //     // Call the backend's user logout endpoint
-  //     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/logout`, {
-  //       method: 'POST',
-  //       headers: {
-  //         'Authorization': `Bearer ${session?.user?.token}`,
-  //       },
-  //     });
-  //   } catch (error) {
-  //     console.error('Error during logout:', error);
-  //   } finally {
-  //     // Always sign out from NextAuth, even if backend logout fails
-  //     signOut({ callbackUrl: '/' });
-  //   }
-  // };
 
   async function handleSignOut() {
     try {
@@ -79,7 +61,19 @@ export default function MainNav() {
                     : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
                 }`}
               >
+                <Plus className="h-5 w-5" />
                 Create Recipe
+              </Link>
+              <Link
+                href="/myrecipes/recipes/generate"
+                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                  isActive('/myrecipes/recipes/generate')
+                    ? 'border-blue-500 text-gray-900 dark:text-white'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
+                }`}
+              >
+                <Sparkles className="h-5 w-5" />
+                Generate with AI
               </Link>
               <Link
                 href="/myrecipes/profile"
