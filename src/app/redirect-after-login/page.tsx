@@ -2,43 +2,49 @@
 
 import { useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function RedirectAfterLogin() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { data: session } = useSession();
 
   useEffect(() => {
     const handleRedirect = async () => {
+      const error = searchParams.get('error');
       const token = searchParams.get('token');
-      const name = searchParams.get('name');
       const email = searchParams.get('email');
-      console.log(token);
 
-      if (token && name && email) {
-        // For external login, we pass the token as the password
-        // The NextAuth configuration will recognize it as an external login
-        // and create a session without password verification
+      if (error) {
+        // If there's an error, redirect to login page with the error message
+        router.push(`/?error=${encodeURIComponent(error)}`);
+        return;
+      }
+
+      if (token && email) {
+        // If we have a token from the backend, establish a session
         const result = await signIn('credentials', {
           username: email,
-          password: token, // This is not actually used as a password
+          password: token,
           redirect: false,
         });
 
-        if (result?.error) {
-          console.error('Failed to establish session:', result.error);
-          router.push('/');
-        } else {
+        if (result?.ok) {
           router.push('/myrecipes');
+        } else {
+          router.push('/?error=Failed to establish session');
         }
+      } else if (session?.user) {
+        // If we already have a valid session, redirect to myrecipes
+        router.push('/myrecipes');
       } else {
-        console.error('Missing required parameters');
+        // If no session or token, redirect to home
         router.push('/');
       }
     };
 
     handleRedirect();
-  }, [router, searchParams]);
+  }, [router, searchParams, session]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

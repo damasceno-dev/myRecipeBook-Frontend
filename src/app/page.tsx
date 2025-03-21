@@ -1,8 +1,8 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {signIn} from 'next-auth/react';
-import {useRouter} from 'next/navigation';
+import {useRouter, useSearchParams} from 'next/navigation';
 import {ThemeToggle} from '@/components/ThemeToggle';
 import Image from 'next/image';
 import {usePostUserLogin, usePostUserRegister, useGetUserGetResetPasswordCodeEmail} from '@/api/generated/myRecipeBookAPI';
@@ -19,6 +19,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Handle error messages from URL
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam));
+    }
+  }, [searchParams]);
 
   const loginMutation = usePostUserLogin();
   const registerMutation = usePostUserRegister();
@@ -141,6 +150,14 @@ export default function LoginPage() {
         <ThemeToggle />
         <div className="max-w-md w-full space-y-8">
           <div>
+            <div className="flex justify-center">
+              <Image
+                src="/recipe-logo.svg"
+                alt="MyRecipeBook Logo"
+                width={64}
+                height={64}
+              />
+            </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold">
               {isResetPassword ? "What is the registered e-mail?" : isLogin ? 'Sign in to MyRecipeBook' : 'Create your account'}
             </h2>

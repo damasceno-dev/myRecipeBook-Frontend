@@ -1,22 +1,9 @@
 import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
-import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
-      authorization: {
-        params: {
-          redirect_uri: `${process.env.NEXT_PUBLIC_API_URL}/signin-google`,
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code"
-        }
-      }
-    }),
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
@@ -90,21 +77,26 @@ export const authOptions: NextAuthOptions = {
       };
       return session;
     },
-    // Add this to prevent default redirects on errors
     async redirect({ url, baseUrl }) {
-      // Always return the original URL to prevent NextAuth's redirection logic
-      return url.startsWith(baseUrl) ? url : baseUrl;
+      // If the url is relative, prefix it with the base URL
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      // If the url is from our domain, allow it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      // Default to the base URL
+      return baseUrl;
     }
   },
   session: {
     strategy: 'jwt',
   },
-  // Add custom pages to override default behaviors
   pages: {
-    signIn: '/login',
-    error: '/login', // Redirect back to login on error instead of home
+    signIn: '/',
+    error: '/',
   },
-  // Add this to ensure errors don't cause redirects
   debug: process.env.NODE_ENV === 'development',
 }
 
