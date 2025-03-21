@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import {usePathname} from 'next/navigation';
 import {signOut} from 'next-auth/react';
-import {Plus, Sparkles, Menu, X, User} from 'lucide-react';
+import {ChefHat, Menu, Plus, Sparkles, User, X} from 'lucide-react';
 import React, {useState} from "react";
+import {ThemeToggle} from '@/components/ThemeToggle';
 
 export default function MainNav() {
   const pathname = usePathname();
@@ -46,13 +46,7 @@ export default function MainNav() {
         onClick={() => setIsMenuOpen(false)}
       >
          <span className="flex items-center">
-          <Image 
-            src={isActive('/myrecipes') ? "/chef-hat-blue.svg" : "/chef-hat.svg"}
-            alt="My Recipes" 
-            width={24} 
-            height={24} 
-            className="h-5 w-5 mr-2"
-          />
+         <ChefHat className="h-5 w-5 mr-2" />
           My Recipes
           </span>
       </Link>
@@ -127,7 +121,8 @@ export default function MainNav() {
               <NavLinks />
             </div>
           </div>
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            <ThemeToggle />
             <button
               onClick={handleSignOut}
               className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors duration-200"
