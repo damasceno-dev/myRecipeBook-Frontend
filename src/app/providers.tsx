@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { SessionProvider } from 'next-auth/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 type Theme = 'dark' | 'light';
 
@@ -17,11 +18,16 @@ export const useTheme = () => useContext(ThemeContext);
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark');
+  const [queryClient] = useState(() => new QueryClient());
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
+    if (newTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
     localStorage.setItem('theme', newTheme);
   };
 
@@ -29,15 +35,21 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const savedTheme = localStorage.getItem('theme') as Theme | null;
     if (savedTheme) {
       setTheme(savedTheme);
-      document.documentElement.setAttribute('data-theme', savedTheme);
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, []);
 
   return (
-    <SessionProvider>
-      <ThemeContext.Provider value={{ theme, toggleTheme }}>
-        {children}
-      </ThemeContext.Provider>
-    </SessionProvider>
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider>
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
+          {children}
+        </ThemeContext.Provider>
+      </SessionProvider>
+    </QueryClientProvider>
   );
 } 

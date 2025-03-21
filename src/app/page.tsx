@@ -146,8 +146,10 @@ export default function LoginPage() {
   };
 
   return (
-      <div className="min-h-screen flex items-center justify-center p-12">
-        <ThemeToggle />
+      <div className="min-h-screen flex items-center justify-center p-12 relative">
+        <div className="absolute top-4 right-4">
+          <ThemeToggle />
+        </div>
         <div className="max-w-md w-full space-y-8">
           <div>
             <div className="flex justify-center">
@@ -355,7 +357,7 @@ export default function LoginPage() {
                     <div className="w-full border-t border-gray-300 dark:border-gray-700"></div>
                   </div>
                   <div className="relative flex justify-center text-sm">
-                    <span className="p-2 bg-black dark:bg-black text-gray-500">
+                    <span className="p-2 bg-black text-gray-500 dark:text-gray-300">
                       Or continue with
                     </span>
                   </div>
