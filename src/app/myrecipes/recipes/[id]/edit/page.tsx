@@ -186,7 +186,12 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files ? e.target.files[0] : undefined;
-    setFormData(prev => ({ ...prev, image: file }));
+    console.log('Current form data before image change:', formData);
+    setFormData(prev => {
+      const newData = { ...prev, image: file };
+      console.log('New form data after image change:', newData);
+      return newData;
+    });
     if (file) {
       setPreview(URL.createObjectURL(file));
     } else {
@@ -212,20 +217,36 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (recipe) {
-      setFormData((prev) => ({
-        ...prev,
-        title: recipe.title || '',
-        ingredients: recipe.ingredients || [''],
-        instructions: recipe.instructions?.map(inst => inst.text || '') || [''],
-        cookingTime: recipe.cookingTime,
-        difficulty: recipe.difficulty,
-        dishTypes: recipe.dishTypes || undefined,
-      }));
+      console.log('Setting form data from recipe:', recipe);
+      setFormData((prev) => {
+        // Only update if the recipe data is different from current form data
+        if (prev.title === recipe.title && 
+            prev.ingredients === recipe.ingredients && 
+            prev.instructions === recipe.instructions?.map(inst => inst.text || '') &&
+            prev.cookingTime === recipe.cookingTime &&
+            prev.difficulty === recipe.difficulty &&
+            prev.dishTypes === recipe.dishTypes) {
+          console.log('Form data is already up to date');
+          return prev;
+        }
+        
+        const newData = {
+          ...prev,
+          title: recipe.title || '',
+          ingredients: recipe.ingredients || [''],
+          instructions: recipe.instructions?.map(inst => inst.text || '') || [''],
+          cookingTime: recipe.cookingTime,
+          difficulty: recipe.difficulty,
+          dishTypes: recipe.dishTypes || undefined,
+        };
+        console.log('New form data:', newData);
+        return newData;
+      });
 
       // Store the original image URL
       setOriginalImageUrl(recipe.imageUrl);
     }
-  }, [recipe]);
+  }, [recipe?.id, recipe?.title, recipe?.ingredients, recipe?.instructions, recipe?.cookingTime, recipe?.difficulty, recipe?.dishTypes]);
 
 
   useEffect(() => {
@@ -236,10 +257,6 @@ export default function EditRecipePage({ params }: { params: { id: string } }) {
     };
   }, [preview]);
 
-  useEffect(() => {
-    console.log('Updated formData:', formData);
-  }, [formData]);
-  
   return (
     <ProtectedRoute>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
