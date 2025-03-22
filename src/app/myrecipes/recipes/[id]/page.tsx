@@ -34,41 +34,38 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
   // Effect to handle image URL changes
   useEffect(() => {
     if (recipe?.imageUrl) {
-      // Always use a new timestamp to force cache refresh
-      const timestamp = Date.now();
-      const imageUrlBase = recipe.imageUrl.split('?')[0];
-      const newImageUrl = `${imageUrlBase}?v=${timestamp}`;
+      // Only update if the image URL has actually changed
+      if (processedImageUrlRef.current !== recipe.imageUrl) {
+        // Use Next.js revalidation for the image
+        const imageUrlBase = recipe.imageUrl.split('?')[0];
+        const newImageUrl = `${imageUrlBase}?v=${Date.now()}`;
 
-      // Always update the image URL and key to force a refresh
-      console.log('Updating image URL:', newImageUrl);
-      setIsImageUpdating(true);
-      setIsImgLoading(true);
-      
-      // Set the new image URL and key
-      setImgSrc(newImageUrl);
-      setImageKey(timestamp);
-      processedImageUrlRef.current = newImageUrl;
+        // Always update the image URL and key to force a refresh
+        console.log('Updating image URL:', newImageUrl);
+        setIsImageUpdating(true);
+        setIsImgLoading(true);
+        
+        // Set the new image URL and key
+        setImgSrc(newImageUrl);
+        setImageKey(Date.now());
+        processedImageUrlRef.current = recipe.imageUrl;
 
-      // Prefetch the image
-      const img = new Image();
-      img.src = newImageUrl;
-      img.onload = () => {
-        console.log('Image prefetched successfully');
-        setIsImgLoading(false);
-        setIsImageUpdating(false);
-      };
-      img.onerror = () => {
-        console.error('Failed to load image');
-        setIsImgLoading(false);
-        setIsImageUpdating(false);
-      };
+        // Prefetch the image
+        const img = new Image();
+        img.src = newImageUrl;
+        img.onload = () => {
+          console.log('Image prefetched successfully');
+          setIsImgLoading(false);
+          setIsImageUpdating(false);
+        };
+        img.onerror = () => {
+          console.error('Failed to load image');
+          setIsImgLoading(false);
+          setIsImageUpdating(false);
+        };
+      }
     }
   }, [recipe?.imageUrl]);
-
-  // Force refresh when component mounts
-  useEffect(() => {
-    refetch();
-  }, []);
 
   // Handle image update and refreshing
   const handleManualRefresh = () => {
