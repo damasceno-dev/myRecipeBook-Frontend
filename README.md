@@ -1,36 +1,141 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyRecipeBook Frontend
 
-## Getting Started
+This repository is a submodule of the [MyRecipeBook Full-Stack Application](https://github.com/damasceno-dev/myRecipeBook), which consists of three main components:
+- Infrastructure (AWS resources)
+- Backend API
+- Frontend Application (this repository)
 
-First, run the development server:
+## About the Application
 
+MyRecipeBook is a modern web application that helps users manage their recipes with a beautiful and intuitive interface. The application features:
+
+- 🔐 Secure authentication with Google OAuth
+- 🌙 Dark mode support
+- 📱 Responsive design for all devices
+- 🔍 Advanced recipe search and filtering
+- 🤖 AI-powered recipe generation
+- 📝 Easy recipe creation and management
+
+### Screenshots
+
+#### Login Screen
+![Login Screen](images-example/1-login-screen.png)
+
+#### Create New Recipe
+![Create New Recipe](images-example/2-create-new-recipe.png)
+
+#### AI Recipe Generation
+![AI Recipe Generation 1](images-example/3-generate-with-ai-1.png)
+![AI Recipe Generation 2](images-example/3-generate-with-ai-2.png)
+
+#### Recipes Dashboard and Search
+![Recipes Dashboard](images-example/4-recipes-dashboard-and-search.png)
+
+## Configuration
+
+### Environment Variables
+
+1. Copy the example environment file:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.production
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Update the following variables in `.env.production`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# Backend API URL (from AppRunner deployment)
+NEXT_PUBLIC_API_URL=https://your-apprunner-service-url
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Google OAuth Configuration
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 
-## Learn More
+# NextAuth Configuration
+NEXTAUTH_URL=https://your-amplify-web-url
+NEXTAUTH_SECRET=your_nextauth_secret
+```
 
-To learn more about Next.js, take a look at the following resources:
+3. **IMPORTANT**: After setting the `NEXT_PUBLIC_API_URL`, you must generate the API types and functions for production:
+```bash
+npm run generate:prod
+```
+This step is crucial as it ensures that the frontend application is properly configured to communicate with the production backend API.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Development
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Standard Development Environment
 
-## Deploy on Vercel
+To run the application locally:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Install dependencies
+npm install
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Generate API types and functions for development
+npm run generate:dev
+
+# Run the development server
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`
+
+### HTTPS Development Environment
+
+For testing features that require secure connections (like OAuth), you can run the application with HTTPS:
+
+1. Create an HTTPS environment file:
+```bash
+cp .env.example .env.local.https
+```
+
+2. Update the environment variables in `.env.local.https`:
+```env
+# Use HTTPS URLs for development
+NEXT_PUBLIC_API_URL=https://your-backend-url
+NEXTAUTH_URL=https://localhost:3000
+```
+
+3. Generate API types and functions for HTTPS development:
+```bash
+npm run generate:dev:https
+```
+
+4. Start the HTTPS development server:
+```bash
+npm run dev:https
+```
+
+The application will be available at `https://localhost:3000`
+
+> **Note**: The HTTPS development server uses a self-signed certificate. Your browser will show a security warning - this is expected in development. You can proceed by accepting the security risk.
+
+### Available NPM Scripts
+
+- `npm run dev`: Start the development server (HTTP)
+- `npm run dev:https`: Start the development server with HTTPS
+- `npm run build`: Build the application for production
+- `npm run start`: Start the production server
+- `npm run generate:dev`: Generate API types and functions for development environment
+- `npm run generate:dev:https`: Generate API types and functions for HTTPS development environment
+- `npm run generate:prod`: Generate API types and functions for production environment
+
+## Deployment
+
+Steps to deploy using AWS Amplify:
+
+1. Log in to the AWS Management Console
+2. Navigate to AWS Amplify
+3. Click "New app" → "Host web app"
+4. Connect to your GitHub repository
+5. Configure the build settings
+6. Deploy the application
+7. Note down the Amplify application URL
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request

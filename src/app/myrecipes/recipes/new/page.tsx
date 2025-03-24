@@ -12,6 +12,7 @@ import {
   ResponseRecipeJson
 } from '@/api/generated/myRecipeBookAPI.schemas';
 import MainNav from "@/components/MainNav";
+import {ImageUpload} from "@/components/ImageUpload";
 
 interface RecipeFormData {
   title: string;
@@ -100,7 +101,7 @@ export default function NewRecipePage() {
       });
     } catch (err: any) {
       if (err?.errorMessages) {
-        setError(err.errorMessages.join(", "));
+        setError(err.errorMessages.join(". ") + ".");
       } else {
         // Fallback for other types of errors
         setError('Failed to create recipe. Please try again.');
@@ -110,15 +111,11 @@ export default function NewRecipePage() {
       setIsLoading(false);
     }
   };
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files ? e.target.files[0] : undefined;
+  const handleImageChange = (file: File) => {
     setFormData(prev => ({ ...prev, image: file }));
-    if (file) {
-      setPreview(URL.createObjectURL(file));
-    } else {
-      setPreview(null);
-    }
+    setPreview(URL.createObjectURL(file));
   };
+
 
   useEffect(() => {
     return () => {
@@ -282,23 +279,14 @@ export default function NewRecipePage() {
               </button>
             </div>
 
-            <div>
+            <div className="flex flex-col items-start gap-3">
               <label htmlFor="image" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Recipe Image
               </label>
-              <input
-                type="file"
-                id="image"
-                accept="image/*"
-                className="mt-1"
-                onChange={handleFileChange}
+              <ImageUpload
+                  onImageChange={handleImageChange}
+                  currentImageUrl={preview}
               />
-              {preview && (
-                  <div className="mt-4">
-                    <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Image Preview:</p>
-                    <img src={preview} alt="Image preview" className="mt-2 max-w-xs border rounded" />
-                  </div>
-              )}
             </div>
 
             <div className="flex justify-end space-x-4">
