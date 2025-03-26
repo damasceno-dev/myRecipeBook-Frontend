@@ -1,6 +1,7 @@
 # MyRecipeBook Frontend
 
-This repository is a submodule of the [MyRecipeBook Full-Stack Application](https://github.com/damasceno-dev/myRecipeBook), which consists of three main components:
+This repository is a submodule of the [MyRecipeBook Full-Stack Application](https://github.
+com/damasceno-dev/myRecipeBook), which consists of three main parts:
 - Infrastructure (AWS resources)
 - Backend API
 - Frontend Application (this repository)
@@ -37,7 +38,7 @@ MyRecipeBook is a modern web application that helps users manage their recipes w
 
 1. Copy the example environment file:
 ```bash
-cp .env.example .env.production
+cp env-production-example .env.production
 ```
 
 2. Update the following variables in `.env.production`:
@@ -86,7 +87,7 @@ For testing features that require secure connections (like OAuth), you can run t
 
 1. Create an HTTPS environment file:
 ```bash
-cp .env.example .env.local.https
+cp env-local-https-example .env.local.https
 ```
 
 2. Update the environment variables in `.env.local.https`:
@@ -121,6 +122,8 @@ The application will be available at `https://localhost:3000`
 - `npm run generate:prod`: Generate API types and functions for production environment
 
 ## Deployment
+The instructions focus on AWS deployment as the other projects are AWS-based; however, feel free to deploy
+wherever suits your needs.
 
 Steps to deploy using AWS Amplify:
 

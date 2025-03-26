@@ -14,6 +14,7 @@ export default function RedirectAfterLogin() {
       const error = searchParams.get('error');
       const token = searchParams.get('token');
       const email = searchParams.get('email');
+      console.log(token)
 
       if (error) {
         // If there's an error, redirect to login page with the error message

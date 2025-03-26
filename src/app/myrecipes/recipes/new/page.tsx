@@ -289,20 +289,20 @@ export default function NewRecipePage() {
               />
             </div>
 
-            <div className="flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
+            <div className="flex flex-col md:flex-row justify-between items-center gap-2 [&>button]:w-full md:[&>button:first-child]:w-5/6 md:[&>button:last-child]:w-1/6">
               <button
                 type="submit"
                 className="btn-primary"
                 disabled={isLoading}
               >
                 {isLoading ? 'Creating...' : 'Create Recipe'}
+              </button>
+              <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="bg-red-600 py-4 px-2 text-white rounded-xl hover:bg-red-700 transition duration-300 disabled:opacity-50"
+              >
+                Cancel
               </button>
             </div>
           </form>

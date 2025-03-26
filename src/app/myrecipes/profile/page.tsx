@@ -198,7 +198,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setShowDeleteModal(true)}
-                className="bg-red-600 py-4 px-2 text-white rounded hover:bg-red-700 transition duration-300 disabled:opacity-50"
+                className="bg-red-600 py-4 px-2 text-white rounded-xl hover:bg-red-700 transition duration-300 disabled:opacity-50"
                 disabled={isLoading}
               >
                 Delete Account

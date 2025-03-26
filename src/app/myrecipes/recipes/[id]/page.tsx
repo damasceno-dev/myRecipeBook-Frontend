@@ -241,13 +241,16 @@ export default function RecipeDetailsPage({ params }: { params: { id: string } }
                     </div>
 
                     <div>
-                      <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-                        Instructions
-                      </h2>
-                      <ol className="list-decimal list-inside space-y-4 text-gray-600 dark:text-gray-300 marker:text-blue-500">
-                        {recipe.instructions?.map((instruction, index) => (
-                            <li key={index} className="ml-2 marker:text-blue-500">{instruction.text}</li>
-                        ))}
+                      <h2 className="text-lg font-semibold mb-2">Instructions</h2>
+                      <ol className="list-decimal pl-5">
+                        {recipe?.instructions
+                            ?.slice() // Create a copy to avoid mutating the original array
+                            .sort((a, b) => (a.step ?? 0) - (b.step ?? 0)) // Sort by step number
+                            .map((instruction) => (
+                                <li key={`instruction-${instruction.step}`} className="mb-2">
+                                  {instruction.text}
+                                </li>
+                            ))}
                       </ol>
                     </div>
                   </div>
