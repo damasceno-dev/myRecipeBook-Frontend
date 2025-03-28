@@ -34,6 +34,14 @@ MyRecipeBook is a modern web application that helps users manage their recipes w
 
 ## Configuration
 
+### Authentication Setup
+
+This application uses Google OAuth for authentication, which is configured in the backend project. The frontend receives the necessary credentials (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`) from the backend's configuration. These credentials are used by NextAuth.js to handle the OAuth flow and user authentication.
+
+### AWS deploy using Amplify
+The instructions focus on AWS deployment as the other projects are AWS-based; however, feel free to deploy
+wherever suits your needs.
+
 ### Environment Variables
 
 1. Copy the example environment file:
@@ -41,26 +49,75 @@ MyRecipeBook is a modern web application that helps users manage their recipes w
 cp env-production-example .env.production
 ```
 
-2. Update the following variables in `.env.production`:
+2. Update the following variables in `.env.production` with initial values just for reference:
 
 ```env
 # Backend API URL (from AppRunner deployment)
 NEXT_PUBLIC_API_URL=https://your-apprunner-service-url
 
-# Google OAuth Configuration
+# Frontend Application URL (will be updated after deployment)
+NEXT_PUBLIC_AUTH_URL=https://your-amplify-web-url
+
+# Google OAuth Configuration (obtained from backend project)
 GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 # NextAuth Configuration
-NEXTAUTH_URL=https://your-amplify-web-url
-NEXTAUTH_SECRET=your_nextauth_secret
+NEXTAUTH_URL=https://your-amplify-web-url  # Will be updated after deployment
+NEXTAUTH_SECRET=your_nextauth_secret  # Required for secure authentication
 ```
 
-3. **IMPORTANT**: After setting the `NEXT_PUBLIC_API_URL`, you must generate the API types and functions for production:
+To generate a secure NEXTAUTH_SECRET, you can use one of these methods:
+
 ```bash
-npm run generate:prod
+# Method 1: Using openssl
+openssl rand -base64 32
+
+# Method 2: Using node
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
-This step is crucial as it ensures that the frontend application is properly configured to communicate with the production backend API.
+
+> **Note**: The NEXTAUTH_SECRET is crucial for security. It's used to encrypt cookies and tokens, sign JWTs, and generate CSRF tokens. Make sure to use a strong, unique value and keep it secret.
+
+## Deployment
+
+### AWS Amplify Deployment Steps
+
+1. **Initial Deployment**
+   - Log in to the AWS Management Console
+   - Navigate to AWS Amplify
+   - Click "Deploy an app"
+   - Choose your source code provider (GitHub) and select your branch
+   - Configure build settings:
+     ```
+     App name: myRecipeBook
+     Framework: Next.js (auto-detected)
+     Build command: npm run build
+     Build output directory: .next
+     ```
+
+2. **Environment Variables Setup**
+   - Before the deployment, at the step App Settings, in Advanced Settings
+   - Add the following environment variables with your initial values:
+     ```
+     NEXT_PUBLIC_API_URL=https://your-apprunner-service-url
+     GOOGLE_CLIENT_ID=your_google_client_id
+     GOOGLE_CLIENT_SECRET=your_google_client_secret
+     NEXTAUTH_SECRET=your_nextauth_secret
+     ```
+
+3. **Update URLs After Deployment**
+   - Once the deployment is complete, note down your Amplify application URL
+   - Add the following environment variables in AWS Amplify:
+     ```
+     NEXT_PUBLIC_AUTH_URL=https://your-amplify-web-url
+     NEXTAUTH_URL=https://your-amplify-web-url
+     ```
+   - Click "Save" to trigger a new deployment with the updated URLs
+   - Update your local `.env.production` with the same URLs for reference
+
+> **Note**: The `.env.production` file is only used for local development reference and to generate the api routes with orval.
+> All production environment variables are managed through AWS Amplify's environment variables settings.
 
 ## Development
 
@@ -120,20 +177,6 @@ The application will be available at `https://localhost:3000`
 - `npm run generate:dev`: Generate API types and functions for development environment
 - `npm run generate:dev:https`: Generate API types and functions for HTTPS development environment
 - `npm run generate:prod`: Generate API types and functions for production environment
-
-## Deployment
-The instructions focus on AWS deployment as the other projects are AWS-based; however, feel free to deploy
-wherever suits your needs.
-
-Steps to deploy using AWS Amplify:
-
-1. Log in to the AWS Management Console
-2. Navigate to AWS Amplify
-3. Click "New app" → "Host web app"
-4. Connect to your GitHub repository
-5. Configure the build settings
-6. Deploy the application
-7. Note down the Amplify application URL
 
 ## Contributing
 
