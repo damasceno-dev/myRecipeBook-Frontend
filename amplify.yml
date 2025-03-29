@@ -6,6 +6,7 @@ frontend:
         - npm ci
     build:
       commands:
+        - env | grep -e NEXTAUTH_URL -e NEXTAUTH_SECRET -e NEXT_PUBLIC_API_URL >> .env.production
         - npm run build
   artifacts:
     baseDirectory: .next
@@ -17,6 +18,8 @@ frontend:
   customHeaders:
     - pattern: '/api/**'
       headers:
+        - key: 'Content-Type'
+          value: 'application/json'
         - key: 'Cache-Control'
           value: 'no-store, max-age=0'
         - key: 'Access-Control-Allow-Origin'
@@ -24,4 +27,8 @@ frontend:
         - key: 'Access-Control-Allow-Methods'
           value: 'GET,OPTIONS,PATCH,DELETE,POST,PUT'
         - key: 'Access-Control-Allow-Headers'
-          value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' 
+          value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+    - pattern: '**/*'
+      headers:
+        - key: 'Cache-Control'
+          value: 'public, max-age=0, must-revalidate' 

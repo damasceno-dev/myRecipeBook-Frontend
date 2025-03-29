@@ -66,7 +66,7 @@ const authOptions: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -113,6 +113,26 @@ const authOptions: NextAuthOptions = {
         path: '/',
         secure: true,
       },
+    },
+  },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      console.log('Sign in:', { user, account, profile, isNewUser });
+    },
+    async signOut({ session, token }) {
+      console.log('Sign out:', { session, token });
+    },
+    async createUser({ user }) {
+      console.log('Create user:', user);
+    },
+    async linkAccount({ user, account, profile }) {
+      console.log('Link account:', { user, account, profile });
+    },
+    async session({ session, token }) {
+      console.log('Session:', { session, token });
+    },
+    async updateUser({ user }) {
+      console.log('Update user:', user);
     },
   },
 }
