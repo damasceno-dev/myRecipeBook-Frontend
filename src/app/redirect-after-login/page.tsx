@@ -14,32 +14,43 @@ function RedirectContent() {
       const error = searchParams.get('error');
       const token = searchParams.get('token');
       const email = searchParams.get('email');
-      console.log(token)
+      const name = searchParams.get('name');
+      console.log('Redirect params:', { error, token, email, name });
 
       if (error) {
-        // If there's an error, redirect to login page with the error message
+        console.error('Error in redirect:', error);
         router.push(`/?error=${encodeURIComponent(error)}`);
         return;
       }
 
       if (token && email) {
-        // If we have a token from the backend, establish a session
-        const result = await signIn('credentials', {
-          username: email,
-          password: token,
-          redirect: false,
-        });
+        console.log('Attempting to establish session with token');
+        try {
+          // If we have a token from the backend, establish a session
+          const result = await signIn('credentials', {
+            username: email,
+            password: token,
+            redirect: false,
+          });
 
-        if (result?.ok) {
-          router.push('/myrecipes');
-        } else {
+          console.log('SignIn result:', result);
+
+          if (result?.ok) {
+            console.log('Session established successfully, redirecting to myrecipes');
+            router.push('/myrecipes');
+          } else {
+            console.error('Failed to establish session:', result?.error);
+            router.push('/?error=Failed to establish session');
+          }
+        } catch (error) {
+          console.error('Error during signIn:', error);
           router.push('/?error=Failed to establish session');
         }
       } else if (session?.user) {
-        // If we already have a valid session, redirect to myrecipes
+        console.log('Valid session found, redirecting to myrecipes');
         router.push('/myrecipes');
       } else {
-        // If no session or token, redirect to home
+        console.log('No session or token found, redirecting to home');
         router.push('/');
       }
     };
@@ -54,7 +65,7 @@ function RedirectContent() {
   );
 }
 
-export default function RedirectAfterLogin() {
+export default function RedirectPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center">

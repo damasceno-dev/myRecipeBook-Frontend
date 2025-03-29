@@ -66,6 +66,8 @@ const authOptions: NextAuthOptions = {
       if (user) {
         token.accessToken = user.token;
         token.refreshToken = user.refreshToken;
+        token.name = user.name;
+        token.email = user.email;
       }
       return token;
     },
@@ -74,6 +76,8 @@ const authOptions: NextAuthOptions = {
         ...session.user,
         token: token.accessToken as string | undefined,
         refreshToken: token.refreshToken as string | undefined,
+        name: token.name as string | undefined,
+        email: token.email as string | undefined,
       };
       return session;
     },
@@ -92,6 +96,7 @@ const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: '/',
