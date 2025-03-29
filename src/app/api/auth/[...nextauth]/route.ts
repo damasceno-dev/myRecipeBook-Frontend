@@ -71,6 +71,8 @@ const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.email = user.email;
         token.name = user.name;
+        token.token = user.token;
+        token.refreshToken = user.refreshToken;
       }
       return token;
     },
@@ -79,6 +81,8 @@ const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
+        session.user.token = token.token as string;
+        session.user.refreshToken = token.refreshToken as string;
       }
       return session;
     },
@@ -96,9 +100,21 @@ const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
-  debug: true,
+  debug: process.env.NODE_ENV === 'development',
   secret: process.env.NEXTAUTH_SECRET,
+  cookies: {
+    sessionToken: {
+      name: `__Secure-next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: true,
+      },
+    },
+  },
 }
 
 const handler = NextAuth(authOptions)

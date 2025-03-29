@@ -10,6 +10,17 @@ const nextConfig = {
     images: {
         domains: ['myrecipebook-s3-bucket.s3.amazonaws.com'],
     },
+    // Add output configuration for AWS Amplify
+    output: 'standalone',
+    // Configure rewrites for API routes
+    async rewrites() {
+        return [
+            {
+                source: '/api/:path*',
+                destination: '/api/:path*',
+            },
+        ];
+    },
     webpack: (config, { isServer }) => {
         if (!isServer) {
             // Provide fallbacks for Node.js core modules (non-prefixed)
