@@ -2,6 +2,14 @@ import NextAuth from "next-auth"
 import type { NextAuthOptions } from "next-auth"
 import CredentialsProvider from 'next-auth/providers/credentials';
 
+if (!process.env.NEXTAUTH_SECRET) {
+  throw new Error('NEXTAUTH_SECRET is not set');
+}
+
+if (!process.env.NEXTAUTH_URL) {
+  throw new Error('NEXTAUTH_URL is not set');
+}
+
 const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
@@ -68,18 +76,28 @@ const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       console.log("JWT callback - token:", token);
       console.log("JWT callback - user:", user);
-      if (user) {
-        token.accessToken = user.token;
-        token.refreshToken = user.refreshToken;
-        token.name = user.name;
-        token.email = user.email;
+      try {
+        if (user) {
+          token.accessToken = user.token;
+          token.refreshToken = user.refreshToken;
+          token.name = user.name;
+          token.email = user.email;
+        }
+        return token;
+      } catch (error) {
+        console.error("Error in JWT callback:", error);
+        throw error;
       }
-      return token;
     },
     async session({ session, token }) {
       console.log("Session callback - session:", session);
       console.log("Session callback - token:", token);
       try {
+        if (!token) {
+          console.error("No token provided in session callback");
+          return session;
+        }
+
         session.user = {
           ...session.user,
           token: token.accessToken as string | undefined,
@@ -97,16 +115,21 @@ const authOptions: NextAuthOptions = {
     async redirect({ url, baseUrl }) {
       console.log("Redirect callback - url:", url);
       console.log("Redirect callback - baseUrl:", baseUrl);
-      // If the url is relative, prefix it with the base URL
-      if (url.startsWith('/')) {
-        return `${baseUrl}${url}`;
+      try {
+        // If the url is relative, prefix it with the base URL
+        if (url.startsWith('/')) {
+          return `${baseUrl}${url}`;
+        }
+        // If the url is from our domain, allow it
+        if (url.startsWith(baseUrl)) {
+          return url;
+        }
+        // Default to the base URL
+        return baseUrl;
+      } catch (error) {
+        console.error("Error in redirect callback:", error);
+        return baseUrl;
       }
-      // If the url is from our domain, allow it
-      if (url.startsWith(baseUrl)) {
-        return url;
-      }
-      // Default to the base URL
-      return baseUrl;
     }
   },
   session: {
@@ -117,8 +140,9 @@ const authOptions: NextAuthOptions = {
     signIn: '/',
     error: '/',
   },
-  debug: true, // Enable debug mode to see more detailed logs
+  debug: true,
   secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,
 }
 
 const handler = NextAuth(authOptions)

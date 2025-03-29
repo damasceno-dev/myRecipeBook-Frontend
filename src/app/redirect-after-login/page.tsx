@@ -34,6 +34,7 @@ function RedirectContent() {
             username: email,
             password: token,
             redirect: false,
+            callbackUrl: '/myrecipes',
           });
 
           console.log('SignIn result:', result);
