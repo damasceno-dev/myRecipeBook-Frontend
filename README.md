@@ -1,7 +1,7 @@
 # MyRecipeBook Frontend
 
-This repository is a submodule of the [MyRecipeBook Full-Stack Application](https://github.
-com/damasceno-dev/myRecipeBook), which consists of three main parts:
+This repository is a submodule of the [MyRecipeBook Full-Stack Application](https://github.com/damasceno-dev/myRecipeBook), 
+which consists of three main parts:
 - Infrastructure (AWS resources)
 - Backend API
 - Frontend Application (this repository)
@@ -170,14 +170,29 @@ The application will be available at `https://localhost:3000`
 
 ### Available NPM Scripts
 
-- `npm run dev`: Start the development server (HTTP)
-- `npm run dev:https`: Start the development server with HTTPS
-- `npm run dev:prod`: Start the development server (HTTP) locally using .env.production (to test the production api address)
-- `npm run build`: Build the application for production
+- `npm run dev`: Start the development server (HTTP) using .env.local
+- `npm run dev:https`: Start the development server with HTTPS using .env.local.https
+- `npm run dev:prod`: Start the development server (HTTP) using .env.production to test against the production API
+- `npm run build`: Generate production API types and build the Next.js application
+- `npm run build:test`: Build the application and start the production server locally for testing
 - `npm run start`: Start the production server
 - `npm run generate:dev`: Generate API types and functions for development environment
 - `npm run generate:dev:https`: Generate API types and functions for HTTPS development environment
 - `npm run generate:prod`: Generate API types and functions for production environment
+
+### Environment Files
+
+The application uses different environment files for various scenarios:
+
+- `.env.local`: Used for standard development with HTTP
+- `.env.local.https`: Used for development with HTTPS (required for OAuth testing)
+- `.env.production`: Used for:
+  - Local testing against the production API
+  - Reference for production environment variables
+  - Generating production API types with orval
+
+> **Note**: The `.env.production` file is only used for local development reference and to generate the API routes with orval.
+> All production environment variables are managed through AWS Amplify's environment variables settings.
 
 ## Contributing
 
