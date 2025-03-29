@@ -7,10 +7,13 @@ import { signIn, useSession } from 'next-auth/react';
 function RedirectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const handleRedirect = async () => {
+      console.log('Redirect page - Session status:', status);
+      console.log('Redirect page - Current session:', session);
+
       const error = searchParams.get('error');
       const token = searchParams.get('token');
       const email = searchParams.get('email');
@@ -56,7 +59,7 @@ function RedirectContent() {
     };
 
     handleRedirect();
-  }, [router, searchParams, session]);
+  }, [router, searchParams, session, status]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

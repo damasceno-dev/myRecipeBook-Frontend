@@ -12,11 +12,15 @@ const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         console.log("Authorize called with credentials:", credentials);
-        if (!credentials?.username) return null;
+        if (!credentials?.username) {
+          console.log("No username provided");
+          return null;
+        }
 
         try {
           // If the password is a token, it's an external login
           if (credentials.password?.includes('.')) {
+            console.log("Processing external login with token");
             // For external login, we'll use the token directly without password verification
             return {
               id: 'external',
@@ -28,6 +32,7 @@ const authOptions: NextAuthOptions = {
           }
 
           // Regular login flow
+          console.log("Processing regular login flow");
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -41,6 +46,7 @@ const authOptions: NextAuthOptions = {
           console.log("API response data:", data);
 
           if (response.ok && data?.responseToken) {
+            console.log("Login successful, returning user data");
             return {
               id: data.id,
               name: data.name,
@@ -49,13 +55,10 @@ const authOptions: NextAuthOptions = {
               refreshToken: data.responseToken.refreshToken,
             };
           }
-          // Instead of returning null (which triggers default error handling),
-          // throw a specific error object that we can handle 
           console.error('Auth failed:', data);
           return null;
         } catch (error) {
           console.error('Auth error:', error);
-          // Explicitly throw with a message we can handle
           throw new Error(error instanceof Error ? error.message : "Authentication error");
         }
       }
@@ -63,6 +66,8 @@ const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      console.log("JWT callback - token:", token);
+      console.log("JWT callback - user:", user);
       if (user) {
         token.accessToken = user.token;
         token.refreshToken = user.refreshToken;
@@ -72,16 +77,26 @@ const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      session.user = {
-        ...session.user,
-        token: token.accessToken as string | undefined,
-        refreshToken: token.refreshToken as string | undefined,
-        name: token.name as string | undefined,
-        email: token.email as string | undefined,
-      };
-      return session;
+      console.log("Session callback - session:", session);
+      console.log("Session callback - token:", token);
+      try {
+        session.user = {
+          ...session.user,
+          token: token.accessToken as string | undefined,
+          refreshToken: token.refreshToken as string | undefined,
+          name: token.name as string | undefined,
+          email: token.email as string | undefined,
+        };
+        console.log("Session callback - final session:", session);
+        return session;
+      } catch (error) {
+        console.error("Error in session callback:", error);
+        throw error;
+      }
     },
     async redirect({ url, baseUrl }) {
+      console.log("Redirect callback - url:", url);
+      console.log("Redirect callback - baseUrl:", baseUrl);
       // If the url is relative, prefix it with the base URL
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`;
@@ -102,7 +117,8 @@ const authOptions: NextAuthOptions = {
     signIn: '/',
     error: '/',
   },
-  debug: process.env.NODE_ENV === 'development',
+  debug: true, // Enable debug mode to see more detailed logs
+  secret: process.env.NEXTAUTH_SECRET,
 }
 
 const handler = NextAuth(authOptions)
