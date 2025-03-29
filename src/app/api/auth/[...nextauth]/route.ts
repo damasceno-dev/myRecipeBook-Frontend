@@ -1,5 +1,4 @@
-import NextAuth from "next-auth"
-import type { NextAuthOptions } from "next-auth"
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 
 if (!process.env.NEXTAUTH_SECRET) {
@@ -15,134 +14,91 @@ const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        username: { label: "Email", type: "text" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("Authorize called with credentials:", credentials);
-        if (!credentials?.username) {
-          console.log("No username provided");
-          return null;
+        if (!credentials?.username || !credentials?.password) {
+          throw new Error('Please enter an email and password');
         }
 
         try {
-          // If the password is a token, it's an external login
-          if (credentials.password?.includes('.')) {
-            console.log("Processing external login with token");
-            // For external login, we'll use the token directly without password verification
-            return {
-              id: 'external',
-              name: credentials.username,
-              email: credentials.username,
-              token: credentials.password,
-              refreshToken: '', // External login doesn't need refresh token
-            };
-          }
-
-          // Regular login flow
-          console.log("Processing regular login flow");
+          // First try regular login
           const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+            },
             body: JSON.stringify({
               email: credentials.username,
               password: credentials.password,
             }),
           });
-          console.log("API response status:", response.status);
-          const data = await response.json();
-          console.log("API response data:", data);
 
-          if (response.ok && data?.responseToken) {
-            console.log("Login successful, returning user data");
-            return {
-              id: data.id,
-              name: data.name,
-              email: data.email,
-              token: data.responseToken.token,
-              refreshToken: data.responseToken.refreshToken,
-            };
+          if (response.ok) {
+            const user = await response.json();
+            return user;
           }
-          console.error('Auth failed:', data);
-          return null;
+
+          // If regular login fails, try external login
+          const externalResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login/external`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: credentials.username,
+              password: credentials.password,
+            }),
+          });
+
+          if (externalResponse.ok) {
+            const user = await externalResponse.json();
+            return user;
+          }
+
+          throw new Error('Invalid email or password');
         } catch (error) {
-          console.error('Auth error:', error);
-          throw new Error(error instanceof Error ? error.message : "Authentication error");
+          console.error('Login error:', error);
+          throw new Error('An error occurred during login');
         }
       }
     })
   ],
   callbacks: {
     async jwt({ token, user }) {
-      console.log("JWT callback - token:", token);
-      console.log("JWT callback - user:", user);
-      try {
-        if (user) {
-          token.accessToken = user.token;
-          token.refreshToken = user.refreshToken;
-          token.name = user.name;
-          token.email = user.email;
-        }
-        return token;
-      } catch (error) {
-        console.error("Error in JWT callback:", error);
-        throw error;
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
+      return token;
     },
     async session({ session, token }) {
-      console.log("Session callback - session:", session);
-      console.log("Session callback - token:", token);
-      try {
-        if (!token) {
-          console.error("No token provided in session callback");
-          return session;
-        }
-
-        session.user = {
-          ...session.user,
-          token: token.accessToken as string | undefined,
-          refreshToken: token.refreshToken as string | undefined,
-          name: token.name as string | undefined,
-          email: token.email as string | undefined,
-        };
-        console.log("Session callback - final session:", session);
-        return session;
-      } catch (error) {
-        console.error("Error in session callback:", error);
-        throw error;
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
       }
+      return session;
     },
     async redirect({ url, baseUrl }) {
-      console.log("Redirect callback - url:", url);
-      console.log("Redirect callback - baseUrl:", baseUrl);
-      try {
-        // If the url is relative, prefix it with the base URL
-        if (url.startsWith('/')) {
-          return `${baseUrl}${url}`;
-        }
-        // If the url is from our domain, allow it
-        if (url.startsWith(baseUrl)) {
-          return url;
-        }
-        // Default to the base URL
-        return baseUrl;
-      } catch (error) {
-        console.error("Error in redirect callback:", error);
-        return baseUrl;
-      }
+      // Allows relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allows callback URLs on the same origin
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
     }
-  },
-  session: {
-    strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
     signIn: '/',
     error: '/',
   },
+  session: {
+    strategy: "jwt",
+  },
   debug: true,
   secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,
 }
 
 const handler = NextAuth(authOptions)
