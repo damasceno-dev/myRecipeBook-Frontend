@@ -9,10 +9,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const router = useRouter();
 
   useEffect(() => {
+    console.log('ProtectedRoute - Auth Status:', status);
+    console.log('ProtectedRoute - Session Data:', session);
+    
     if (status === 'unauthenticated') {
+      console.log('ProtectedRoute - Redirecting to home due to unauthenticated status');
       router.push('/');
     }
-  }, [status, router]);
+  }, [status, router, session]);
 
   if (status === 'loading') {
     return (
@@ -23,6 +27,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (status === 'authenticated') {
+    console.log('ProtectedRoute - Rendering protected content');
     return <>{children}</>;
   }
 

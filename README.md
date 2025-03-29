@@ -172,6 +172,7 @@ The application will be available at `https://localhost:3000`
 
 - `npm run dev`: Start the development server (HTTP)
 - `npm run dev:https`: Start the development server with HTTPS
+- `npm run dev:prod`: Start the development server (HTTP) locally using .env.production (to test the production api address)
 - `npm run build`: Build the application for production
 - `npm run start`: Start the production server
 - `npm run generate:dev`: Generate API types and functions for development environment
