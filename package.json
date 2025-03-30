@@ -14,7 +14,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "dev:prod": "cross-env NODE_ENV=development npx dotenv-cli -e .env.production -- next dev",
+    "dev:prod": "cross-env NODE_ENV=development npx dotenv-cli -e .env.local.production -- next dev",
     "dev:https": "cross-env NODE_ENV=development ENV_FILE=.env.local.https NODE_TLS_REJECT_UNAUTHORIZED=0 node server.js",
     "generate:dev": "cross-env NODE_ENV=development npx dotenv-cli -e .env.local -- orval --config orval.config.ts",
     "generate:dev:https": "cross-env NODE_TLS_REJECT_UNAUTHORIZED=0 orval --config orval.config.ts",
