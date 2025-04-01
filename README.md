@@ -4,7 +4,7 @@ This repository is a submodule of the [MyRecipeBook Full-Stack Application](http
 which consists of three main parts:
 - Infrastructure (AWS resources)
 - Backend API
-- Frontend Application (this repository)
+- _Frontend Application (this repository)_
 
 ## About the Application
 
@@ -153,13 +153,14 @@ cp env-local-https-example .env.local.https
 NEXT_PUBLIC_API_URL=https://your-backend-url
 NEXTAUTH_URL=https://localhost:3000
 ```
+3. Generate the certs needed taking the ones in the certs folder as example
 
-3. Generate API types and functions for HTTPS development:
+4. Generate API types and functions for HTTPS development:
 ```bash
 npm run generate:dev:https
 ```
 
-4. Start the HTTPS development server:
+5. Start the HTTPS development server:
 ```bash
 npm run dev:https
 ```
