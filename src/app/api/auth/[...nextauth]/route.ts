@@ -9,7 +9,13 @@ if (!process.env.NEXTAUTH_URL) {
   throw new Error('NEXTAUTH_URL is not set');
 }
 
-const authOptions: NextAuthOptions = {
+const logWithContext = (message: string, data?: any) => {
+  console.log(`[${new Date().toISOString()}] [NextAuth] ${message}`, data || '');
+};
+
+const isUsingProductionApi = process.env.NEXT_PUBLIC_API_URL?.includes('awsapprunner.com');
+
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -17,56 +23,78 @@ const authOptions: NextAuthOptions = {
         username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) {
-          throw new Error('Please enter an email and password');
+      authorize: async (credentials) => {
+        logWithContext("Authorize called with credentials:", {
+          username: credentials?.username,
+          password: credentials?.password ? '***' : undefined,
+          environment: process.env.NODE_ENV,
+          apiUrl: process.env.NEXT_PUBLIC_API_URL,
+          isUsingProductionApi
+        });
+
+        if (!credentials?.username) {
+          logWithContext("No username provided");
+          return null;
         }
 
         try {
-          // First try regular login
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login`, {
+          if (credentials.password?.includes('.')) {
+            logWithContext("Processing external token login");
+            const user = {
+              id: 'external',
+              name: credentials.username,
+              email: credentials.username,
+              token: credentials.password,
+              refreshToken: '',
+            };
+            logWithContext("External token user object:", { ...user, token: '***' });
+            return user;
+          }
+
+          logWithContext("Processing regular email/password login");
+          const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/user/login`;
+          logWithContext("Making request to:", apiUrl);
+
+          const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: credentials.username,
               password: credentials.password,
             }),
           });
 
-          if (response.ok) {
-            const user = await response.json();
-            return user;
+          logWithContext("API response status:", response.status);
+
+          if (!response.ok) {
+            logWithContext("Login failed", response.status);
+            return null;
           }
 
-          // If regular login fails, try external login
-          const externalResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user/login/external`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              email: credentials.username,
-              password: credentials.password,
-            }),
-          });
-
-          if (externalResponse.ok) {
-            const user = await externalResponse.json();
-            return user;
-          }
-
-          throw new Error('Invalid email or password');
+          const data = await response.json();
+          logWithContext("Login successful, returning user data");
+          return {
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            token: data.responseToken.token,
+            refreshToken: data.responseToken.refreshToken,
+          };
         } catch (error) {
-          console.error('Login error:', error);
-          throw new Error('An error occurred during login');
+          logWithContext("Login error:", error);
+          return null;
         }
-      }
-    })
+      },
+    }),
   ],
+  session: { strategy: 'jwt' },
   callbacks: {
     async jwt({ token, user, account }) {
+      logWithContext("JWT callback", {
+        hasUser: !!user,
+        hasAccount: !!account,
+        tokenKeys: Object.keys(token)
+      });
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -77,65 +105,40 @@ const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.email = token.email as string;
-        session.user.name = token.name as string;
-        session.user.token = token.token as string;
-        session.user.refreshToken = token.refreshToken as string;
+      logWithContext("Session callback", {
+        session,
+        tokenKeys: Object.keys(token),
+      });
+      if (token) {
+        session.user = {
+          id: (token as any).id,
+          name: (token as any).name,
+          email: (token as any).email,
+          token: (token as any).token,
+          refreshToken: (token as any).refreshToken,
+        };
       }
       return session;
     },
-    async redirect({ url, baseUrl }) {
-      // Allows relative callback URLs
-      if (url.startsWith("/")) return `${baseUrl}${url}`;
-      // Allows callback URLs on the same origin
-      else if (new URL(url).origin === baseUrl) return url;
-      return baseUrl;
-    }
   },
-  pages: {
-    signIn: '/',
-    error: '/',
-  },
-  session: {
-    strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
-  },
-  debug: process.env.NODE_ENV === 'development',
-  secret: process.env.NEXTAUTH_SECRET,
+  // Explicit cookie configuration if needed
   cookies: {
     sessionToken: {
-      name: `__Secure-next-auth.session-token`,
+      name: process.env.NEXTAUTH_URL.startsWith('https')
+          ? '__Secure-next-auth.session-token'
+          : 'next-auth.session-token',
       options: {
         httpOnly: true,
+        secure: process.env.NEXTAUTH_URL.startsWith('https'),
         sameSite: 'lax',
         path: '/',
-        secure: true,
       },
     },
   },
-  events: {
-    async signIn({ user, account, profile, isNewUser }) {
-      console.log('Sign in:', { user, account, profile, isNewUser });
-    },
-    async signOut({ session, token }) {
-      console.log('Sign out:', { session, token });
-    },
-    async createUser({ user }) {
-      console.log('Create user:', user);
-    },
-    async linkAccount({ user, account, profile }) {
-      console.log('Link account:', { user, account, profile });
-    },
-    async session({ session, token }) {
-      console.log('Session:', { session, token });
-    },
-    async updateUser({ user }) {
-      console.log('Update user:', user);
-    },
-  },
-}
+  debug: false,
+};
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+const handler = NextAuth(authOptions);
+
+// IMPORTANT: export GET and POST to allow the proper HTTP methods.
+export { handler as GET, handler as POST };
